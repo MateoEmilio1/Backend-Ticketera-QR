@@ -8,7 +8,7 @@ import mainRouter from "./routes/app.routes.js";
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT as string, 10) || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -17,10 +17,9 @@ app.get("/", (req, res) => {
   res.send("Hola");
 });
 
-const server = app.listen(port, "0.0.0.0", () => {
+const server = app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
-
 app.use("/api", mainRouter);
 
 // Manejo de cierre para liberar la conexión de Prisma
