@@ -4,7 +4,8 @@
   "description": "Backend del proyecto de Ticketera QR",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec tsx src/index.ts"
+    "dev": "nodemon --exec tsx src/index.ts",
+    "start": "tsx src/index.ts"
   },
   "repository": {
     "type": "git",
