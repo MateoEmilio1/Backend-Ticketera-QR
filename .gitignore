@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+
+# Archivos de entorno
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Directorios de compilación
+dist/
+build/
+
+# Archivos de configuración de IDE
+.vscode/
+.idea/
+
+# Archivos de sistema
+.DS_Store
+
+# Archivos de TypeScript (opcional, si no quieres subir los .js y .map)
+*.js
+*.map
+
+# Archivos de npm/yarn
+package-lock.json
+yarn.lock
+
+# Archivos de caché
+.cache/

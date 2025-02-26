@@ -1,0 +1,37 @@
+{
+  "name": "backend-ticketera-qr",
+  "version": "1.0.0",
+  "description": "Backend del proyecto de Ticketera QR",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miguel58000/Backend-Ticketera-QR.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Miguel58000/Backend-Ticketera-QR/issues"
+  },
+  "homepage": "https://github.com/Miguel58000/Backend-Ticketera-QR#readme",
+  "dependencies": {
+    "@prisma/client": "^6.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "prisma": "^6.3.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.10",
+    "nodemon": "^3.1.9",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

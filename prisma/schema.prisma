@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Categoria {
+  nombreCategoria String
+  idCategoria     Int      @id @default(autoincrement())
+  eventos         Evento[]
+}
+
+model Organizacion {
+  idOrganizacion Int      @id @default(autoincrement())
+  ubicacion      String
+  mail           String   @unique
+  nombre         String
+  contraseña     String
+  cuit           String
+  eventos        Evento[]
+}
+
+model Evento {
+  idEvento        Int          @id @default(autoincrement())
+  nombre          String
+  fechaCreacion   DateTime
+  fechaHoraEvento DateTime
+  capacidadMax    Int
+  descripcion     String?
+  idCategoria     Int
+  idOrganizacion  Int
+  foto            String
+  categoria       Categoria    @relation(fields: [idCategoria], references: [idCategoria])
+  organizacion    Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  tipoTickets     TipoTicket[]
+}
+
+model TipoTicket {
+  idTipoTicket   Int      @id @default(autoincrement())
+  tipo           String
+  precio         Decimal
+  acceso         String
+  cantMaxPorTipo Int
+  idEvento       Int
+  tickets        Ticket[]
+  evento         Evento   @relation(fields: [idEvento], references: [idEvento], onDelete: Cascade)
+}
+
+model Cliente {
+  idCliente       Int      @id @default(autoincrement())
+  contraseña      String
+  nombre          String
+  apellido        String
+  tipoDoc         String
+  nroDoc          String   @unique
+  fechaNacimiento DateTime
+  mail            String   @unique
+  tickets         Ticket[]
+}
+
+model Ticket {
+  nroTicket     Int        @id @default(autoincrement())
+  fechaCreacion DateTime   @default(now())
+  tokenQr       String     @unique
+  idTipoTicket  Int
+  idCliente     Int
+  estado        EstadoTicket     @default(pagado)
+  cliente       Cliente    @relation(fields: [idCliente], references: [idCliente])
+  tipoTicket    TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
+}
+
+model Politica {
+  fechaVigencia   DateTime @id  @default(now())
+  tiempoReembolso Int
+}
+
+
+// Valores posibles de Ticket.estado
+enum EstadoTicket {
+  pagado
+  consumido
+  expirado
+  reembolsado
+}
