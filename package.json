@@ -9,16 +9,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miguel58000/Backend-Ticketera-QR.git"
+    "url": "git+https://github.com/MateoEmilio1/Backend-Ticketera-QR"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/Miguel58000/Backend-Ticketera-QR/issues"
+    "url": "https://github.com/MateoEmilio1/Backend-Ticketera-QR/issues"
   },
-  "homepage": "https://github.com/Miguel58000/Backend-Ticketera-QR#readme",
+  "homepage": "https://github.com/MateoEmilio1/Backend-Ticketera-QR#readme",
   "dependencies": {
     "@prisma/client": "^6.3.0",
     "cors": "^2.8.5",
