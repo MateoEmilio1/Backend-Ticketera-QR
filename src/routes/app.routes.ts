@@ -7,6 +7,7 @@ import categoriaRouter from "./categoria.routes.js";
 import eventoRouter from './evento.routes.js';
 import tipoTicketRouter from './tipoTicket.routes.js';
 import ticketRouter from './ticket.routes.js';
+import usuarioRouter from './usuario.routes.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use("/categorias", categoriaRouter);
 router.use("/eventos", eventoRouter);
 router.use("/tipoTickets", tipoTicketRouter);
 router.use("/tickets", ticketRouter);
+router.use("/usuarios", usuarioRouter);
 
 export default router;
