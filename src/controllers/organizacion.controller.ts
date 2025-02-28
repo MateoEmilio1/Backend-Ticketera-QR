@@ -9,8 +9,20 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
 
     const organizacion = await prisma.organizacion.create({
       data: {
-        ...organizacionData,
+        nombre: organizacionData.nombre,
+        cuit: organizacionData.cuit,
+        ubicacion: organizacionData.ubicacion,
         ...(eventos?.length > 0 ? { eventos: { create: eventos } } : {}),
+        usuario:{
+          create: {
+            mail: organizacionData.mail,
+            contraseña: organizacionData.contraseña,
+            rol: "ORGANIZACION",
+          }
+        },
+      },
+      include: {
+        usuario: true, 
       },
     });
 
@@ -31,7 +43,14 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
 
 const obtenerOrganizaciones = async (req: Request, res: Response) => {
   try {
-    const organizaciones = await prisma.organizacion.findMany();
+    const organizaciones = await prisma.organizacion.findMany({
+      include: {
+        usuario:{
+          select: {
+            mail: true,
+          },
+        },
+    }});
     res.status(200).json({
       message: "Organizaciones obtenidas con éxito",
       data: organizaciones,
@@ -52,7 +71,13 @@ const obtenerOrganizacionPorId = async (req: Request, res: Response):Promise<voi
     const { id } = req.params;
     const organizacion = await prisma.organizacion.findUnique({
       where: { idOrganizacion: parseInt(id) },
-    });
+      include: {
+        usuario:{
+          select: {
+            mail: true,
+          },
+        },
+    }});
 
     if (!organizacion) {
       res.status(404).json({

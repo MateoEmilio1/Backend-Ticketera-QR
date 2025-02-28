@@ -2,15 +2,37 @@ import {prisma} from "../prisma.js"
 import { Request, Response } from "express";
 
 // Crear un cliente
-const crearCliente = async (req: Request, res: Response) => {
+const crearCliente = async (req: Request, res: Response):Promise<void>  => {
   try {
-    const cliente = await prisma.cliente.create({
-      data: req.body,
+    const { mail, password, nombre, apellido, tipoDoc, nroDoc, fechaNacimiento } = req.body;
+
+    if (!mail || !password || !nombre || !apellido || !tipoDoc || !nroDoc || !fechaNacimiento) {
+      res.status(400).json({ message: "Todos los campos son obligatorios", error: true });
+      return;
+    }
+    const nuevoCliente = await prisma.cliente.create({
+      data: {
+        nombre,
+        apellido,
+        tipoDoc,
+        nroDoc,
+        fechaNacimiento: new Date(fechaNacimiento),
+        usuario: {  
+          create: {
+            mail,
+            contraseña: password,
+            rol: "CLIENTE",
+          },
+        },
+      },
+      include: {
+        usuario: true, // Para devolver el usuario creado junto con el cliente
+      },
     });
 
     res.status(200).json({
       message: "Cliente creado con éxito",
-      data: cliente,
+      data: nuevoCliente,
       error: false,
     });
   } catch (error) {
@@ -23,9 +45,17 @@ const crearCliente = async (req: Request, res: Response) => {
   }
 }
 
-const obtenerClientes = async (req: Request, res: Response) => {
+const obtenerClientes = async (req: Request, res: Response):Promise<void> => {
   try {
-    const clientes = await prisma.cliente.findMany();
+    const clientes = await prisma.cliente.findMany({
+      include: {
+        usuario:{
+          select: {
+            mail: true,
+          },
+        },
+      },
+    });
     res.status(200).json({
       message: "Clientes obtenidos con éxito",
       data: clientes,
@@ -46,6 +76,13 @@ const obtenerClientePorId = async (req: Request, res: Response):Promise<void> =>
     const { id } = req.params;
     const cliente = await prisma.cliente.findUnique({
       where: { idCliente: parseInt(id) },
+      include: {
+        usuario: {
+          select: {
+            mail: true,
+          },
+        },
+      },
     });
 
     if (!cliente) {
@@ -76,8 +113,7 @@ const eliminarCliente = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const clienteEliminado = await prisma.cliente.delete({
-      where: { idCliente: parseInt(id) },
-    });
+      where: { idCliente: parseInt(id) }});
     if (!clienteEliminado) {
       res.status(404).json({
         message: "Cliente no encontrado",
