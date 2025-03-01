@@ -1,16 +1,56 @@
-import {prisma} from "../prisma.js"
+import { Rol } from "@prisma/client";
+import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
-// Crear un cliente
-const crearCliente = async (req: Request, res: Response) => {
+const crearCliente = async (req: Request, res: Response): Promise<void> => {
   try {
-    const cliente = await prisma.cliente.create({
-      data: req.body,
+    const {
+      mail,
+      password,
+      nombre,
+      apellido,
+      tipoDoc,
+      nroDoc,
+      fechaNacimiento,
+    } = req.body;
+
+    if (
+      !mail ||
+      !password ||
+      !nombre ||
+      !apellido ||
+      !tipoDoc ||
+      !nroDoc ||
+      !fechaNacimiento
+    ) {
+      res
+        .status(400)
+        .json({ message: "Todos los campos son obligatorios", error: true });
+      return;
+    }
+    const nuevoCliente = await prisma.cliente.create({
+      data: {
+        nombre,
+        apellido,
+        tipoDoc,
+        nroDoc,
+        fechaNacimiento: new Date(fechaNacimiento),
+        usuario: {
+          create: {
+            mail,
+            contraseña: password,
+            rol: Rol.CLIENTE,
+          },
+        },
+      },
+      include: {
+        usuario: true,
+      },
     });
 
     res.status(200).json({
       message: "Cliente creado con éxito",
-      data: cliente,
+      data: nuevoCliente,
       error: false,
     });
   } catch (error) {
@@ -18,14 +58,22 @@ const crearCliente = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Error al crear el cliente",
       error: true,
-      details: (error as Error).message, 
+      details: (error as Error).message,
     });
   }
-}
+};
 
-const obtenerClientes = async (req: Request, res: Response) => {
+const obtenerClientes = async (req: Request, res: Response): Promise<void> => {
   try {
-    const clientes = await prisma.cliente.findMany();
+    const clientes = await prisma.cliente.findMany({
+      include: {
+        usuario: {
+          select: {
+            mail: true,
+          },
+        },
+      },
+    });
     res.status(200).json({
       message: "Clientes obtenidos con éxito",
       data: clientes,
@@ -39,13 +87,23 @@ const obtenerClientes = async (req: Request, res: Response) => {
       details: (error as Error).message,
     });
   }
-}
+};
 
-const obtenerClientePorId = async (req: Request, res: Response):Promise<void> => {
+const obtenerClientePorId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const cliente = await prisma.cliente.findUnique({
       where: { idCliente: parseInt(id) },
+      include: {
+        usuario: {
+          select: {
+            mail: true,
+          },
+        },
+      },
     });
 
     if (!cliente) {
@@ -53,7 +111,7 @@ const obtenerClientePorId = async (req: Request, res: Response):Promise<void> =>
         message: "Cliente no encontrado",
         error: true,
       });
-      return; 
+      return;
     }
 
     res.status(200).json({
@@ -61,7 +119,6 @@ const obtenerClientePorId = async (req: Request, res: Response):Promise<void> =>
       data: cliente,
       error: false,
     });
-
   } catch (error) {
     console.error("Error en obtenerClientePorId:", error);
     res.status(500).json({
@@ -96,7 +153,7 @@ const eliminarCliente = async (req: Request, res: Response): Promise<void> => {
       details: (error as Error).message,
     });
   }
-}
+};
 
 const actualizarCliente = async (req: Request, res: Response) => {
   try {
@@ -112,12 +169,18 @@ const actualizarCliente = async (req: Request, res: Response) => {
       data: clienteActualizado,
       error: false,
     });
-  }catch (error) { 
+  } catch (error) {
     res.status(500).json({
       message: "Error al actualizar el cliente",
       error: true,
       details: (error as Error).message,
     });
   }
-}
-export default { crearCliente, obtenerClientes, obtenerClientePorId, eliminarCliente, actualizarCliente };
+};
+export default {
+  crearCliente,
+  obtenerClientes,
+  obtenerClientePorId,
+  eliminarCliente,
+  actualizarCliente,
+};

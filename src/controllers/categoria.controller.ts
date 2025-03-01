@@ -1,8 +1,7 @@
 import { error } from "console";
-import {prisma} from "../prisma.js"
+import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
-// Crear una Categoria
 export const crearCategoria = async (req: Request, res: Response) => {
   try {
     const categoria = await prisma.categoria.create({
@@ -19,10 +18,10 @@ export const crearCategoria = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Error al crear la categoria",
       error: true,
-      details: (error as Error).message, 
+      details: (error as Error).message,
     });
   }
-}
+};
 
 const obtenerCategorias = async (req: Request, res: Response) => {
   try {
@@ -40,9 +39,12 @@ const obtenerCategorias = async (req: Request, res: Response) => {
       details: (error as Error).message, // 👈 Casting a Error,
     });
   }
-}
+};
 
-const eliminarCategoria = async (req:Request, res: Response):Promise<void> => {
+const eliminarCategoria = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const categoriaEliminada = await prisma.categoria.delete({
@@ -63,9 +65,9 @@ const eliminarCategoria = async (req:Request, res: Response):Promise<void> => {
     res.status(500).json({
       message: "Error al eliminar la categoria",
       error: true,
-      details: (error as Error).message, 
+      details: (error as Error).message,
     });
   }
-}
+};
 
-export default {crearCategoria, obtenerCategorias, eliminarCategoria};
+export default { crearCategoria, obtenerCategorias, eliminarCategoria };

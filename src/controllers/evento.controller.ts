@@ -1,9 +1,9 @@
 import { error } from "console";
-import {prisma} from "../prisma.js"
+import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
 // Crear un Evento
-const crearEvento = async (req: Request, res: Response) => {
+const crearEvento = async (req: Request, res: Response): Promise<void> => {
   try {
     //Extraer datos del body
     const {
@@ -19,12 +19,30 @@ const crearEvento = async (req: Request, res: Response) => {
     } = req.body;
 
     // Validaciones básicas
-    if (!nombre || !fechaCreacion || !fechaHoraEvento || !capacidadMax || !foto || !idCategoria || !idOrganizacion) {
-      return res.status(400).json({ message: "Todos los campos son obligatorios", error: true });
+    if (
+      !nombre ||
+      !fechaCreacion ||
+      !fechaHoraEvento ||
+      !capacidadMax ||
+      !foto ||
+      !idCategoria ||
+      !idOrganizacion
+    ) {
+      res.status(400).json({
+        message: "Todos los campos son obligatorios",
+        error: true,
+      });
+
+      return;
     }
 
     if (!Array.isArray(tipoTickets) || tipoTickets.length === 0) {
-      return res.status(400).json({ message: "Debe incluir al menos un tipo de ticket", error: true });
+      res.status(400).json({
+        message: "Debe incluir al menos un tipo de ticket",
+        error: true,
+      });
+
+      return;
     }
 
     // Convertir fechas a objetos Date y crear el evento con sus tipoTickets en una sola transacción
@@ -43,11 +61,11 @@ const crearEvento = async (req: Request, res: Response) => {
           connect: { idOrganizacion },
         },
         tipoTickets: {
-          create: tipoTickets.map(ticket => ({
+          create: tipoTickets.map((ticket) => ({
             tipo: ticket.tipo,
             precio: ticket.precio,
             acceso: ticket.acceso,
-            cantMaxPorTipo: ticket.cantMaxPorTipo
+            cantMaxPorTipo: ticket.cantMaxPorTipo,
           })),
         },
       },
@@ -57,10 +75,11 @@ const crearEvento = async (req: Request, res: Response) => {
     });
 
     res.status(201).json({ message: "Evento creado con éxito", evento });
-    
   } catch (error) {
     console.error("Error al crear el evento:", error);
-    res.status(500).json({ message: "Error interno del servidor", error: true });
+    res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: true });
   }
 };
 
@@ -77,7 +96,6 @@ const obtenerEventos = async (req: Request, res: Response) => {
       data: eventos,
       error: false,
     });
-
   } catch (error) {
     console.error("Error en obtenerEventos:", error);
     res.status(500).json({
@@ -88,7 +106,10 @@ const obtenerEventos = async (req: Request, res: Response) => {
   }
 };
 
-const obtenerEventosPorId = async (req: Request, res: Response): Promise<void> => {
+const obtenerEventosPorId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const evento = await prisma.evento.findUnique({
@@ -111,7 +132,6 @@ const obtenerEventosPorId = async (req: Request, res: Response): Promise<void> =
       data: evento,
       error: false,
     });
-
   } catch (error) {
     console.error("Error en obtenerEventoPorId:", error);
     res.status(500).json({
@@ -121,8 +141,6 @@ const obtenerEventosPorId = async (req: Request, res: Response): Promise<void> =
     });
   }
 };
-
-
 
 const eliminarEvento = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -148,7 +166,7 @@ const eliminarEvento = async (req: Request, res: Response): Promise<void> => {
       details: (error as Error).message,
     });
   }
-}
+};
 
 const actualizarEvento = async (req: Request, res: Response) => {
   try {
@@ -164,13 +182,19 @@ const actualizarEvento = async (req: Request, res: Response) => {
       data: EventoActualizado,
       error: false,
     });
-  }catch (error) { 
+  } catch (error) {
     res.status(500).json({
       message: "Error al actualizar el Evento",
       error: true,
       details: (error as Error).message,
     });
   }
-}
+};
 
-export default { obtenerEventos, obtenerEventosPorId, eliminarEvento, actualizarEvento, crearEvento };
+export default {
+  crearEvento,
+  obtenerEventos,
+  obtenerEventosPorId,
+  eliminarEvento,
+  actualizarEvento,
+};
