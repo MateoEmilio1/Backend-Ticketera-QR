@@ -1,8 +1,8 @@
 import { error } from "console";
-import {prisma} from "../prisma.js"
+import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
+import { Rol } from "@prisma/client";
 
-// Crear una organización
 export const crearOrganizacion = async (req: Request, res: Response) => {
   try {
     const { eventos, ...organizacionData } = req.body;
@@ -13,16 +13,16 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
         cuit: organizacionData.cuit,
         ubicacion: organizacionData.ubicacion,
         ...(eventos?.length > 0 ? { eventos: { create: eventos } } : {}),
-        usuario:{
+        usuario: {
           create: {
             mail: organizacionData.mail,
             contraseña: organizacionData.contraseña,
-            rol: "ORGANIZACION",
-          }
+            rol: Rol.ORGANIZACION,
+          },
         },
       },
       include: {
-        usuario: true, 
+        usuario: true,
       },
     });
 
@@ -39,18 +39,19 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
       details: (error as Error).message,
     });
   }
-}
+};
 
 const obtenerOrganizaciones = async (req: Request, res: Response) => {
   try {
     const organizaciones = await prisma.organizacion.findMany({
       include: {
-        usuario:{
+        usuario: {
           select: {
             mail: true,
           },
         },
-    }});
+      },
+    });
     res.status(200).json({
       message: "Organizaciones obtenidas con éxito",
       data: organizaciones,
@@ -64,20 +65,24 @@ const obtenerOrganizaciones = async (req: Request, res: Response) => {
       details: (error as Error).message,
     });
   }
-}
+};
 
-const obtenerOrganizacionPorId = async (req: Request, res: Response):Promise<void> => {
+const obtenerOrganizacionPorId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const organizacion = await prisma.organizacion.findUnique({
       where: { idOrganizacion: parseInt(id) },
       include: {
-        usuario:{
+        usuario: {
           select: {
             mail: true,
           },
         },
-    }});
+      },
+    });
 
     if (!organizacion) {
       res.status(404).json({
@@ -92,15 +97,18 @@ const obtenerOrganizacionPorId = async (req: Request, res: Response):Promise<voi
       data: organizacion,
       error: false,
     });
-  }catch (error) {
+  } catch (error) {
     res.status(500).json({
       message: "Error al obtener la organización",
       error: true,
       details: (error as Error).message,
     });
   }
-}
-const eliminarOrganizacion = async (req: Request, res: Response):Promise<void> => {
+};
+const eliminarOrganizacion = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const organizacionEliminada = await prisma.organizacion.delete({
@@ -124,7 +132,7 @@ const eliminarOrganizacion = async (req: Request, res: Response):Promise<void> =
       details: (error as Error).message,
     });
   }
-}
+};
 
 const actualizarOrganizacion = async (req: Request, res: Response) => {
   try {
@@ -144,12 +152,18 @@ const actualizarOrganizacion = async (req: Request, res: Response) => {
       data: organizacionActualizada,
       error: false,
     });
-  }catch (error) { 
+  } catch (error) {
     res.status(500).json({
       message: "Error al actualizar la organización",
       error: true,
       details: (error as Error).message,
     });
   }
-}
-export default { crearOrganizacion, obtenerOrganizaciones, obtenerOrganizacionPorId, eliminarOrganizacion, actualizarOrganizacion };
+};
+export default {
+  crearOrganizacion,
+  obtenerOrganizaciones,
+  obtenerOrganizacionPorId,
+  eliminarOrganizacion,
+  actualizarOrganizacion,
+};

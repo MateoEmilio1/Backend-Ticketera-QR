@@ -1,14 +1,15 @@
-import{prisma} from '../prisma.js';
-import { Request, Response } from 'express';
+import { Rol } from "@prisma/client";
+import { prisma } from "../prisma.js";
+import { Request, Response } from "express";
 
-const crearUsuario = async (req: Request, res: Response):Promise<void> => {
+const crearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
     const usuario = await prisma.usuario.create({
       data: {
         mail,
         contraseña,
-        rol: "ADMIN",
+        rol: Rol.ADMIN,
       },
     });
     res.status(201).json({
@@ -24,6 +25,6 @@ const crearUsuario = async (req: Request, res: Response):Promise<void> => {
       details: (error as Error).message,
     });
   }
-}
+};
 
 export default { crearUsuario };
