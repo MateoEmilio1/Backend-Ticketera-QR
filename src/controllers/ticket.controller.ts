@@ -117,6 +117,67 @@ const obtenerTicketPorId = async (req: Request, res: Response) => {
   }
 };
 
+const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
+  try {
+    console.log(req.params); // Para depuración
+
+    const { idCliente } = req.params;
+
+    // Validar si idCliente existe y es un número válido
+    if (!idCliente || isNaN(Number(idCliente))) {
+      res.status(400).json({
+        message: "El ID de cliente es inválido",
+        error: true
+      });
+      return;
+    }
+
+    const tickets = await prisma.ticket.findMany({
+      where: { idCliente: Number(idCliente) }, // Convertimos a número de manera segura
+      include: {
+        cliente: {
+          select: {
+            nombre: true,
+            apellido: true
+          }
+        },
+        tipoTicket: {
+          select: {
+            precio: true,
+            acceso: true,
+            evento: {
+              select: {
+                nombre: true,
+                fechaHoraEvento: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!tickets.length) {
+      res.status(404).json({
+        message: "No existen tickets pertenecientes a este cliente",
+        error: true
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Tickets obtenidos con éxito",
+      data: tickets,
+      error: false
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al obtener los tickets",
+      error: true,
+      details: (error as Error).message
+    });
+  }
+};
+
 //Eliminar Ticket
 
 const eliminarTicket = async (req: Request, res: Response) => {
@@ -174,4 +235,4 @@ const actualizarTicket = async (req: Request, res: Response) => {
   }
 }
 
-export default {crearTicket, obtenerTickets, obtenerTicketPorId, eliminarTicket, actualizarTicket};
+export default {crearTicket, obtenerTickets, obtenerTicketPorId, eliminarTicket, actualizarTicket, obtenerTicketsPorIdCliente};
