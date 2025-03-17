@@ -6,7 +6,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       mail,
-      password,
+      contraseña,
       nombre,
       apellido,
       tipoDoc,
@@ -16,7 +16,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
 
     if (
       !mail ||
-      !password ||
+      !contraseña ||
       !nombre ||
       !apellido ||
       !tipoDoc ||
@@ -38,7 +38,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
         usuario: {
           create: {
             mail,
-            contraseña: password,
+            contraseña: contraseña,
             rol: Rol.CLIENTE,
           },
         },
@@ -70,6 +70,7 @@ const obtenerClientes = async (req: Request, res: Response): Promise<void> => {
         usuario: {
           select: {
             mail: true,
+            rol: true,
           },
         },
       },
@@ -101,6 +102,7 @@ const obtenerClientePorId = async (
         usuario: {
           select: {
             mail: true,
+            rol: true,
           },
         },
       },
