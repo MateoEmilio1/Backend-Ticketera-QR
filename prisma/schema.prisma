@@ -3,25 +3,48 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-model Categoria {
-  nombreCategoria String
-  idCategoria     Int      @id @default(autoincrement())
-  eventos         Evento[]
+model Usuario {
+  idUsuario    Int    @id @default(autoincrement())
+  mail         String @unique
+  contraseña   String
+  rol          Rol
+  cliente      Cliente?
+  organizacion Organizacion?
+}
+
+model Cliente {
+  idCliente       Int  @id @default(autoincrement())
+  idUsuario       Int  @unique
+  nombre          String
+  apellido        String
+  tipoDoc         String
+  nroDoc          String @unique
+  fechaNacimiento DateTime
+  tickets         Ticket[]
+  
+  usuario Usuario @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
 }
 
 model Organizacion {
-  idOrganizacion Int      @id @default(autoincrement())
+  idOrganizacion Int  @id @default(autoincrement())
+  idUsuario      Int  @unique
   ubicacion      String
-  mail           String   @unique
   nombre         String
-  contraseña     String
-  cuit           String
+  cuit           String @unique
   eventos        Evento[]
+  
+  usuario Usuario @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+}
+
+model Categoria {
+  idCategoria     Int      @id @default(autoincrement())
+  nombreCategoria String
+  eventos         Evento[]
 }
 
 model Evento {
@@ -47,37 +70,33 @@ model TipoTicket {
   cantMaxPorTipo Int
   idEvento       Int
   tickets        Ticket[]
+  
   evento         Evento   @relation(fields: [idEvento], references: [idEvento], onDelete: Cascade)
 }
 
-model Cliente {
-  idCliente       Int      @id @default(autoincrement())
-  contraseña      String
-  nombre          String
-  apellido        String
-  tipoDoc         String
-  nroDoc          String   @unique
-  fechaNacimiento DateTime
-  mail            String   @unique
-  tickets         Ticket[]
-}
-
 model Ticket {
-  nroTicket     Int        @id @default(autoincrement())
-  fechaCreacion DateTime   @default(now())
-  tokenQr       String     @unique
+  nroTicket     Int      @id @default(autoincrement())
+  fechaCreacion DateTime @default(now())
+  tokenQr       String   @unique
   idTipoTicket  Int
   idCliente     Int
-  estado        EstadoTicket     @default(pagado)
-  cliente       Cliente    @relation(fields: [idCliente], references: [idCliente])
-  tipoTicket    TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
+  estado        EstadoTicket @default(pagado)
+
+  cliente    Cliente    @relation(fields: [idCliente], references: [idCliente])
+  tipoTicket TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
 }
 
 model Politica {
-  fechaVigencia   DateTime @id  @default(now())
+  fechaVigencia   DateTime @id @default(now())
   tiempoReembolso Int
 }
 
+// Enum para definir los roles del usuario
+enum Rol {
+  CLIENTE
+  ORGANIZACION
+  ADMIN
+}
 
 // Valores posibles de Ticket.estado
 enum EstadoTicket {
