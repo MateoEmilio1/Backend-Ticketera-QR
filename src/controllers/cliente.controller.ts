@@ -161,10 +161,38 @@ const actualizarCliente = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const clienteData = req.body;
-    const clienteActualizado = await prisma.cliente.update({
+
+    const clienteExistente = await prisma.cliente.findUnique({
       where: { idCliente: parseInt(id) },
-      data: clienteData,
+      include: { usuario: true },
     });
+
+    if (!clienteExistente) {
+      return res
+        .status(404)
+        .json({ message: "Cliente no encontrado", error: true });
+    }
+
+    const [clienteActualizado] = await prisma.$transaction([
+      prisma.cliente.update({
+        where: { idCliente: parseInt(id) },
+        data: {
+          nombre: clienteData.nombre,
+          apellido: clienteData.apellido,
+          tipoDoc: clienteData.tipoDoc,
+          nroDoc: clienteData.nroDoc,
+          fechaNacimiento: new Date(clienteData.fechaNacimiento),
+        },
+        include: { usuario: true },
+      }),
+      prisma.usuario.update({
+        where: { idUsuario: clienteExistente.idUsuario },
+        data: {
+          mail: clienteData.mail,
+          ...(clienteData.contraseña && { contraseña: clienteData.contraseña }),
+        },
+      }),
+    ]);
 
     res.status(200).json({
       message: "Cliente actualizado con éxito",
@@ -172,6 +200,7 @@ const actualizarCliente = async (req: Request, res: Response) => {
       error: false,
     });
   } catch (error) {
+    console.error("Error en actualizarCliente:", error);
     res.status(500).json({
       message: "Error al actualizar el cliente",
       error: true,
@@ -179,6 +208,7 @@ const actualizarCliente = async (req: Request, res: Response) => {
     });
   }
 };
+
 export default {
   crearCliente,
   obtenerClientes,
