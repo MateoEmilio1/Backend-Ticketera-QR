@@ -168,9 +168,8 @@ const actualizarCliente = async (req: Request, res: Response) => {
     });
 
     if (!clienteExistente) {
-      return res
-        .status(404)
-        .json({ message: "Cliente no encontrado", error: true });
+      res.status(404).json({ message: "Cliente no encontrado", error: true });
+      return;
     }
 
     const [clienteActualizado] = await prisma.$transaction([
