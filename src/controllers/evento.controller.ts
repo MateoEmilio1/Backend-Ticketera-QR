@@ -171,10 +171,36 @@ const eliminarEvento = async (req: Request, res: Response): Promise<void> => {
 const actualizarEvento = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const EventoData = req.body;
+    const {
+      nombre,
+      fechaCreacion,
+      fechaHoraEvento,
+      capacidadMax,
+      descripcion,
+      foto,
+      idCategoria,
+      idOrganizacion
+    } = req.body;
+
     const EventoActualizado = await prisma.evento.update({
       where: { idEvento: parseInt(id) },
-      data: EventoData,
+      data: {
+        nombre,
+        fechaCreacion: new Date(fechaCreacion),
+        fechaHoraEvento: new Date(fechaHoraEvento),
+        capacidadMax: parseInt(capacidadMax),
+        descripcion: descripcion || null,
+        foto,
+        categoria: {
+          connect: { idCategoria: parseInt(idCategoria) }
+        },
+        organizacion: {
+          connect: { idOrganizacion: parseInt(idOrganizacion) }
+        },
+      },
+      include: {
+        tipoTickets: true, // Para devolver los tickets creados junto con el evento
+      },
     });
 
     res.status(200).json({
@@ -183,6 +209,7 @@ const actualizarEvento = async (req: Request, res: Response) => {
       error: false,
     });
   } catch (error) {
+    console.error("Error al actualizar el Evento:", error);
     res.status(500).json({
       message: "Error al actualizar el Evento",
       error: true,
@@ -190,6 +217,7 @@ const actualizarEvento = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export default {
   crearEvento,
