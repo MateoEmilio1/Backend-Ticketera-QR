@@ -4,8 +4,9 @@ import { Request, Response } from "express";
 
 export const crearCategoria = async (req: Request, res: Response) => {
   try {
+    const {nombreCategoria} = req.body
     const categoria = await prisma.categoria.create({
-      data: req.body,
+      data: {nombreCategoria},
     });
 
     res.status(200).json({
