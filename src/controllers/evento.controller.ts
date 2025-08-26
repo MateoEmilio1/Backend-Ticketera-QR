@@ -1,11 +1,9 @@
-import { error } from "console";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
 // Crear un Evento
 const crearEvento = async (req: Request, res: Response): Promise<void> => {
   try {
-    //Extraer datos del body
     const {
       nombre,
       fechaCreacion,
@@ -15,10 +13,9 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
       foto,
       idCategoria,
       idOrganizacion,
-      tipoTickets, // Array de tipos de tickets [{ tipo, precio, acceso, cantMaxPorTipo }, ...]
+      tipoTickets,
     } = req.body;
 
-    // Validaciones básicas
     if (
       !nombre ||
       !fechaCreacion ||
@@ -28,24 +25,15 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
       !idCategoria ||
       !idOrganizacion
     ) {
-      res.status(400).json({
-        message: "Todos los campos son obligatorios",
-        error: true,
-      });
-
+      res.status(400).json({ message: "Todos los campos son obligatorios", error: true });
       return;
     }
 
     if (!Array.isArray(tipoTickets) || tipoTickets.length === 0) {
-      res.status(400).json({
-        message: "Debe incluir al menos un tipo de ticket",
-        error: true,
-      });
-
+      res.status(400).json({ message: "Debe incluir al menos un tipo de ticket", error: true });
       return;
     }
 
-    // Convertir fechas a objetos Date y crear el evento con sus tipoTickets en una sola transacción
     const evento = await prisma.evento.create({
       data: {
         nombre,
@@ -54,12 +42,8 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
         capacidadMax,
         descripcion: descripcion || null,
         foto,
-        categoria: {
-          connect: { idCategoria },
-        },
-        organizacion: {
-          connect: { idOrganizacion },
-        },
+        categoria: { connect: { idCategoria } },
+        organizacion: { connect: { idOrganizacion } },
         tipoTickets: {
           create: tipoTickets.map((ticket) => ({
             tipo: ticket.tipo,
@@ -69,105 +53,71 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
           })),
         },
       },
-      include: {
-        tipoTickets: true, // Para devolver los tickets creados junto con el evento
-      },
+      include: { tipoTickets: true },
     });
 
     res.status(201).json({ message: "Evento creado con éxito", evento });
   } catch (error) {
     console.error("Error al crear el evento:", error);
-    res
-      .status(500)
-      .json({ message: "Error interno del servidor", error: true });
+    res.status(500).json({ message: "Error interno del servidor", error: true });
   }
 };
 
+// Obtener todos los eventos
 const obtenerEventos = async (req: Request, res: Response) => {
   try {
     const eventos = await prisma.evento.findMany({
-      include: {
-        tipoTickets: true, // Trae todos los datos de los tipoTickets asociados
-      },
+      include: { tipoTickets: true },
     });
 
-    res.status(200).json({
-      message: "Eventos obtenidos con éxito",
-      data: eventos,
-      error: false,
-    });
+    res.status(200).json({ message: "Eventos obtenidos con éxito", data: eventos, error: false });
   } catch (error) {
     console.error("Error en obtenerEventos:", error);
-    res.status(500).json({
-      message: "Error al obtener los eventos",
-      error: true,
-      details: (error as Error).message,
-    });
+    res.status(500).json({ message: "Error al obtener los eventos", error: true, details: (error as Error).message });
   }
 };
 
-const obtenerEventosPorId = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Obtener un evento por id
+const obtenerEventosPorId = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const evento = await prisma.evento.findUnique({
       where: { idEvento: parseInt(id) },
-      include: {
-        tipoTickets: true, // Trae toda la información de los tipoTickets
-      },
+      include: { tipoTickets: true },
     });
 
     if (!evento) {
-      res.status(404).json({
-        message: "Evento no encontrado",
-        error: true,
-      });
+      res.status(404).json({ message: "Evento no encontrado", error: true });
       return;
     }
 
-    res.status(200).json({
-      message: "Evento obtenido con éxito",
-      data: evento,
-      error: false,
-    });
+    res.status(200).json({ message: "Evento obtenido con éxito", data: evento, error: false });
   } catch (error) {
     console.error("Error en obtenerEventoPorId:", error);
-    res.status(500).json({
-      message: "Error al obtener el evento",
-      error: true,
-      details: (error as Error).message,
-    });
+    res.status(500).json({ message: "Error al obtener el evento", error: true, details: (error as Error).message });
   }
 };
 
+// Eliminar evento
 const eliminarEvento = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const eventoEliminado = await prisma.evento.delete({
       where: { idEvento: parseInt(id) },
     });
+
     if (!eventoEliminado) {
-      res.status(404).json({
-        message: "Evento no encontrado",
-        error: true,
-      });
+      res.status(404).json({ message: "Evento no encontrado", error: true });
       return;
     }
-    res.status(200).json({
-      message: "Evento eliminado con éxito",
-      error: false,
-    });
+
+    res.status(200).json({ message: "Evento eliminado con éxito", error: false });
   } catch (error) {
-    res.status(500).json({
-      message: "Error al eliminar el Evento",
-      error: true,
-      details: (error as Error).message,
-    });
+    res.status(500).json({ message: "Error al eliminar el Evento", error: true, details: (error as Error).message });
   }
 };
 
+// Actualizar evento
 const actualizarEvento = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -177,17 +127,78 @@ const actualizarEvento = async (req: Request, res: Response) => {
       data: EventoData,
     });
 
-    res.status(200).json({
-      message: "Evento actualizado con éxito",
-      data: EventoActualizado,
-      error: false,
-    });
+    res.status(200).json({ message: "Evento actualizado con éxito", data: EventoActualizado, error: false });
   } catch (error) {
-    res.status(500).json({
-      message: "Error al actualizar el Evento",
-      error: true,
-      details: (error as Error).message,
+    res.status(500).json({ message: "Error al actualizar el Evento", error: true, details: (error as Error).message });
+  }
+};
+
+// Obtener estadísticas
+const getEstadisticas = async (req: Request, res: Response) => {
+  try {
+    // Traer todos los eventos con tickets y clientes
+    const eventos = await prisma.evento.findMany({
+      include: {
+        tipoTickets: {
+          include: { tickets: { include: { cliente: true } } },
+        },
+      },
     });
+
+    // Procesar estadísticas por evento
+    const estadisticas = eventos.map((evento) => {
+      const tickets = evento.tipoTickets.flatMap((t) => t.tickets);
+      const vendidos = tickets.length;
+      const reembolsados = tickets.filter((t) => t.estado === "reembolsado").length;
+      const recaudacion = tickets.reduce(
+        (sum, t) =>
+          sum +
+          Number(evento.tipoTickets.find((tt) => tt.idTipoTicket === t.idTipoTicket)?.precio || 0),
+        0
+      );
+
+      const edades = tickets
+        .map((t) => {
+          if (!t.cliente?.fechaNacimiento) return NaN;
+          const hoy = new Date();
+          const nacimiento = new Date(t.cliente.fechaNacimiento);
+          return hoy.getFullYear() - nacimiento.getFullYear();
+        })
+        .filter((edad) => !isNaN(edad));
+
+      return {
+        idEvento: evento.idEvento,
+        nombre: evento.nombre,
+        foto: evento.foto,
+        fecha: evento.fechaHoraEvento,
+        vendidos,
+        reembolsados,
+        porcReembolsados: vendidos ? (reembolsados / vendidos) * 100 : 0,
+        recaudacion,
+        edadPromedio: edades.length
+          ? edades.reduce((a, b) => a + b, 0) / edades.length
+          : 0,
+      };
+    });
+
+    // Resumen general
+    const totalVendidos = estadisticas.reduce((a, e) => a + e.vendidos, 0);
+    const totalReembolsados = estadisticas.reduce((a, e) => a + e.reembolsados, 0);
+    const totalRecaudacion = estadisticas.reduce((a, e) => a + e.recaudacion, 0);
+
+    const resumen = {
+      totalVendidos,
+      promedioVendidos: estadisticas.length ? totalVendidos / estadisticas.length : 0,
+      totalReembolsados,
+      porcReembolsados: totalVendidos ? (totalReembolsados / totalVendidos) * 100 : 0,
+      recaudacionTotal: totalRecaudacion,
+      recaudacionPromedio: estadisticas.length ? totalRecaudacion / estadisticas.length : 0,
+    };
+
+    res.status(200).json({ resumen, eventos: estadisticas });
+  } catch (error) {
+    console.error("Error en getEstadisticas:", error);
+    res.status(500).json({ message: "Error al obtener estadísticas" });
   }
 };
 
@@ -197,4 +208,6 @@ export default {
   obtenerEventosPorId,
   eliminarEvento,
   actualizarEvento,
+  getEstadisticas,
 };
+
