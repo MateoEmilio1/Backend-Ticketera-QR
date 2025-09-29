@@ -9,6 +9,7 @@ import tipoTicketRouter from './tipoTicket.routes.js';
 import ticketRouter from './ticket.routes.js';
 import usuarioRouter from './usuario.routes.js';
 
+
 const router = Router();
 
 router.use("/organizaciones", organizacionRouter);
