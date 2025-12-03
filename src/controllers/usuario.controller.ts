@@ -26,5 +26,57 @@ const crearUsuario = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
+const obtenerUsuario = async (req: Request, res: Response) => {
+  try {
+    const usuarios = await prisma.usuario.findMany();
+    res.json({ data: usuarios }); // <- esto es clave
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener usuarios" });
+  }
+};
 
-export default { crearUsuario };
+const loginUsuario = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { mail, contraseña } = req.body;
+
+    if (!mail || !contraseña) {
+      res.status(400).json({
+        message: "Email y contraseña son requeridos",
+        error: true,
+      });
+      return;
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { mail },
+    });
+
+    if (!usuario || usuario.contraseña !== contraseña) {
+      res.status(401).json({
+        message: "Usuario o contraseña incorrectos",
+        error: true,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Login exitoso",
+      data: {
+        idUsuario: usuario.idUsuario,
+        mail: usuario.mail,
+        rol: usuario.rol,
+      },
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en loginUsuario:", error);
+    res.status(500).json({
+      message: "Error al hacer login",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
+export default { crearUsuario , obtenerUsuario, loginUsuario };
