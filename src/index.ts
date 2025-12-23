@@ -14,10 +14,6 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Hola");
-});
-
 app.use("/api", mainRouter);
 app.use("/api/usuario", usuarioRoutes);
 
@@ -39,13 +35,3 @@ const shutdown = async () => {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-// Manejar errores no capturados
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
-  shutdown();
-});
-
-process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled Rejection:", reason);
-  shutdown();
-});

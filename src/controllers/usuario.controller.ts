@@ -2,6 +2,7 @@ import { Rol } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
+// Solo crea ADMINS
 const crearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
@@ -26,6 +27,7 @@ const crearUsuario = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
+
 const obtenerUsuario = async (req: Request, res: Response) => {
   try {
     const usuarios = await prisma.usuario.findMany();
