@@ -3,7 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
 import mainRouter from "./routes/app.routes.js";
-
+import 'dotenv/config';
+import usuarioRoutes from "./routes/usuario.routes";
 // Cargar variables de entorno
 dotenv.config();
 
@@ -13,14 +14,12 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Hola");
-});
+app.use("/api", mainRouter);
+app.use("/api/usuario", usuarioRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
-app.use("/api", mainRouter);
 
 // Manejo de cierre para liberar la conexión de Prisma
 const shutdown = async () => {
@@ -35,3 +34,4 @@ const shutdown = async () => {
 // Capturar señales para cierre seguro
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+
