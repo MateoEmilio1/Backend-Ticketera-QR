@@ -1,4 +1,3 @@
-import { error } from "console";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 import { Rol } from "@prisma/client";

@@ -8,6 +8,8 @@ router.get("/", ticketController.obtenerTickets);
 router.get("/:id", ticketController.obtenerTicketPorId);
 router.delete("/:id", ticketController.eliminarTicket);
 router.put("/:id", ticketController.actualizarTicket);
+router.post("/validar/:tokenQr", ticketController.validarTicket);
+router.post("/consumir/:tokenQr", ticketController.consumirTicket);
 router.get("/cliente/:idCliente", ticketController.obtenerTicketsPorIdCliente);
 
 export default router;        
