@@ -9,35 +9,35 @@ datasource db {
 }
 
 model Usuario {
-  idUsuario    Int    @id @default(autoincrement())
-  mail         String @unique
-  contraseña   String
+  idUsuario    Int           @id @default(autoincrement())
+  mail         String        @unique
+  contraseña  String
   rol          Rol
   cliente      Cliente?
   organizacion Organizacion?
 }
 
 model Cliente {
-  idCliente       Int  @id @default(autoincrement())
-  idUsuario       Int  @unique
+  idCliente       Int      @id @default(autoincrement())
+  idUsuario       Int      @unique
   nombre          String
   apellido        String
   tipoDoc         String
-  nroDoc          String @unique
+  nroDoc          String   @unique
   fechaNacimiento DateTime
   tickets         Ticket[]
-  
+
   usuario Usuario @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
 }
 
 model Organizacion {
-  idOrganizacion Int  @id @default(autoincrement())
-  idUsuario      Int  @unique
+  idOrganizacion Int      @id @default(autoincrement())
+  idUsuario      Int      @unique
   ubicacion      String
   nombre         String
-  cuit           String @unique
+  cuit           String   @unique
   eventos        Evento[]
-  
+
   usuario Usuario @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
 }
 
@@ -70,14 +70,14 @@ model TipoTicket {
   cantMaxPorTipo Int
   idEvento       Int
   tickets        Ticket[]
-  
-  evento         Evento   @relation(fields: [idEvento], references: [idEvento], onDelete: Cascade)
+
+  evento Evento @relation(fields: [idEvento], references: [idEvento], onDelete: Cascade)
 }
 
 model Ticket {
-  nroTicket     Int      @id @default(autoincrement())
-  fechaCreacion DateTime @default(now())
-  tokenQr       String   @unique
+  nroTicket     Int          @id @default(autoincrement())
+  fechaCreacion DateTime     @default(now())
+  tokenQr       String       @unique
   idTipoTicket  Int
   idCliente     Int
   estado        EstadoTicket @default(pagado)
@@ -87,8 +87,8 @@ model Ticket {
 }
 
 model Politica {
-  fechaVigencia   DateTime @id @default(now())
-  tiempoReembolso Int
+  fechaVigencia DateTime @id @default(now())
+  diasReembolso Int @default(7)
 }
 
 // Enum para definir los roles del usuario
