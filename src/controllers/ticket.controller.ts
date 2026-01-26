@@ -1,8 +1,13 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
+import { randomBytes } from "crypto";
+import QRCode from "qrcode";
 
 const crearTicket = async (req: Request, res: Response) => {
   try {
+    const tokenQr = randomBytes(16).toString("hex");
+    req.body.tokenQr = tokenQr;
+
     const ticket = await prisma.ticket.create({
       data: req.body,
     });
@@ -137,6 +142,7 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
           select: {
             nombre: true,
             apellido: true,
+            nroDoc: true,
           },
         },
         tipoTicket: {
@@ -154,14 +160,6 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
       },
     });
 
-    if (!tickets.length) {
-      res.status(404).json({
-        message: "No existen tickets pertenecientes a este cliente",
-        error: true,
-      });
-      return;
-    }
-
     res.status(200).json({
       message: "Tickets obtenidos con éxito",
       data: tickets,
@@ -175,6 +173,113 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Validar Ticket (QR)
+const validarTicket = async (req: Request, res: Response) => {
+  try {
+    const { tokenQr } = req.params;
+    if (!tokenQr) {
+      res.status(400).json({
+        message: "Token QR es requerido",
+        error: true,
+      });
+      return;
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { tokenQr },
+      include: {
+        tipoTicket: {
+          include: {
+            evento: true
+          }
+        },
+        cliente: true
+      }
+    });
+
+    if (!ticket) {
+      res.status(404).json({
+        message: "Ticket no encontrado",
+        error: true,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Ticket válido",
+      data: ticket,
+      error: false,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al validar el ticket",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
+// Consumir Ticket (QR)
+const consumirTicket = async (req: Request, res: Response) => {
+  try {
+    const { tokenQr } = req.params;
+
+    if (!tokenQr) {
+      res.status(400).json({
+        message: "Token QR es requerido",
+        error: true,
+      });
+      return;
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { tokenQr },
+    });
+
+    if (!ticket) {
+      res.status(404).json({
+        message: "Ticket no encontrado",
+        error: true,
+      });
+      return;
+    }
+
+    if (ticket.estado === 'consumido') {
+      res.status(400).json({
+        message: "El ticket ya ha sido consumido",
+        error: true,
+      });
+      return;
+    }
+
+    if (ticket.estado === 'expirado' || ticket.estado === 'reembolsado') {
+      res.status(400).json({
+        message: `El ticket no es válido (Estado: ${ticket.estado})`,
+        error: true,
+      });
+      return;
+    }
+
+    const ticketActualizado = await prisma.ticket.update({
+      where: { tokenQr },
+      data: { estado: 'consumido' },
+    });
+
+    res.status(200).json({
+      message: "Ticket consumido con éxito",
+      data: ticketActualizado,
+      error: false,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al consumir el ticket",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
 
 //Eliminar Ticket
 
@@ -240,4 +345,6 @@ export default {
   eliminarTicket,
   actualizarTicket,
   obtenerTicketsPorIdCliente,
+  validarTicket,
+  consumirTicket,
 };
