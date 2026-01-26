@@ -1,9 +1,10 @@
 import express from 'express';
-import politicaController from '../controllers/politica.controller.js';
+import politicaController from '../controllers/politica.controller';
 
 const router = express.Router();
 
 router.post('/', politicaController.crearPolitica);
 router.get('/', politicaController.obtenerPoliticas);
+router.get('/actual', politicaController.obtenerPoliticaActual);
 
 export default router;
