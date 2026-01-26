@@ -160,15 +160,6 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
       },
     });
 
-    if (!tickets.length) {
-      res.status(404).json({
-        message: "No existen tickets pertenecientes a este cliente",
-        error: true,
-        data: []
-      });
-      return;
-    }
-
     res.status(200).json({
       message: "Tickets obtenidos con éxito",
       data: tickets,
