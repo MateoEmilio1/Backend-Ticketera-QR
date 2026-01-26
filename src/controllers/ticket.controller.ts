@@ -1,8 +1,6 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 import { randomBytes } from "crypto";
-import QRCode from "qrcode";
-
 const crearTicket = async (req: Request, res: Response) => {
   try {
     const tokenQr = randomBytes(16).toString("hex");
