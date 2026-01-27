@@ -1,15 +1,17 @@
 import { Rol } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
+import { encrypt, verified } from "../utils/handleCrypt.js";
 
 // Solo crea ADMINS
 const crearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
+    const passwordHash = await encrypt(contraseña);
     const usuario = await prisma.usuario.create({
       data: {
         mail,
-        contraseña,
+        contraseña: passwordHash,
         rol: Rol.ADMIN,
       },
     });
@@ -54,7 +56,17 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
       where: { mail },
     });
 
-    if (!usuario || usuario.contraseña !== contraseña) {
+    if (!usuario) {
+      res.status(401).json({
+        message: "Usuario o contraseña incorrectos",
+        error: true,
+      });
+      return;
+    }
+
+    const checkPassword = await verified(contraseña, usuario.contraseña);
+
+    if (!checkPassword) {
       res.status(401).json({
         message: "Usuario o contraseña incorrectos",
         error: true,
@@ -81,4 +93,4 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export default { crearUsuario , obtenerUsuario, loginUsuario };
+export default { crearUsuario, obtenerUsuario, loginUsuario };
