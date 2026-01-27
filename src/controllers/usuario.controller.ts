@@ -7,11 +7,11 @@ import { encrypt, verified } from "../utils/handleCrypt.js";
 const crearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
-    const passwordHash = await encrypt(contraseña);
+    const hashedPassword = await encrypt(contraseña);
     const usuario = await prisma.usuario.create({
       data: {
         mail,
-        contraseña: passwordHash,
+        contraseña: hashedPassword,
         rol: Rol.ADMIN,
       },
     });
@@ -56,17 +56,9 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
       where: { mail },
     });
 
-    if (!usuario) {
-      res.status(401).json({
-        message: "Usuario o contraseña incorrectos",
-        error: true,
-      });
-      return;
-    }
+    const contraseñaCorrecta = await verified(contraseña, usuario.contraseña);
 
-    const checkPassword = await verified(contraseña, usuario.contraseña);
-
-    if (!checkPassword) {
+    if (!usuario || !contraseñaCorrecta) {
       res.status(401).json({
         message: "Usuario o contraseña incorrectos",
         error: true,

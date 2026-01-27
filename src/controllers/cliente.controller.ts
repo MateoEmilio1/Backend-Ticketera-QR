@@ -1,6 +1,7 @@
 import { Rol } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
+import { encrypt } from "../utils/handleCrypt.js";
 
 const crearCliente = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -28,6 +29,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
         .json({ message: "Todos los campos son obligatorios", error: true });
       return;
     }
+    const hashedPassword = await encrypt(contraseña);
     const nuevoCliente = await prisma.cliente.create({
       data: {
         nombre,
@@ -38,7 +40,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
         usuario: {
           create: {
             mail,
-            contraseña: contraseña,
+            contraseña: hashedPassword,
             rol: Rol.CLIENTE,
           },
         },

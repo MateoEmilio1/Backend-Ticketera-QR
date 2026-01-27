@@ -1,13 +1,11 @@
 import bcrypt from "bcrypt";
 
-const encrypt = async (password: string): Promise<string> => {
-    const hash = await bcrypt.hash(password, 10);
-    return hash;
+export const encrypt = async (password: string): Promise<string> => {
+    const saltRounds = 8;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    return hashedPassword;
 };
 
-const verified = async (pass: string, passHash: string): Promise<boolean> => {
-    const isCorrect = await bcrypt.compare(pass, passHash);
-    return isCorrect;
+export const verified = async (password: string, hashedPassword: string): Promise<boolean> => {
+    return await bcrypt.compare(password, hashedPassword);
 };
-
-export { encrypt, verified };
