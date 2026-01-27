@@ -77,6 +77,7 @@ model TipoTicket {
 model Ticket {
   nroTicket     Int          @id @default(autoincrement())
   fechaCreacion DateTime     @default(now())
+  fechaConsumo  DateTime?
   tokenQr       String       @unique
   idTipoTicket  Int
   idCliente     Int
@@ -88,7 +89,7 @@ model Ticket {
 
 model Politica {
   fechaVigencia DateTime @id @default(now())
-  diasReembolso Int @default(7)
+  diasReembolso Int      @default(7)
 }
 
 // Enum para definir los roles del usuario

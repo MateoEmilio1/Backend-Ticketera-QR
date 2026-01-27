@@ -35,6 +35,8 @@ const obtenerTickets = async (req: Request, res: Response) => {
           select: {
             nombre: true,
             apellido: true,
+            tipoDoc: true,
+            nroDoc: true,
           },
         },
         tipoTicket: {
@@ -43,8 +45,10 @@ const obtenerTickets = async (req: Request, res: Response) => {
             acceso: true,
             evento: {
               select: {
+                idEvento: true,
                 nombre: true,
                 fechaHoraEvento: true,
+                idOrganizacion: true,
               },
             },
           },
@@ -79,6 +83,8 @@ const obtenerTicketPorId = async (req: Request, res: Response) => {
           select: {
             nombre: true,
             apellido: true,
+            tipoDoc: true,
+            nroDoc: true,
           },
         },
         tipoTicket: {
@@ -87,8 +93,10 @@ const obtenerTicketPorId = async (req: Request, res: Response) => {
             acceso: true,
             evento: {
               select: {
+                idEvento: true,
                 nombre: true,
                 fechaHoraEvento: true,
+                idOrganizacion: true,
               },
             },
           },
@@ -140,6 +148,7 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
           select: {
             nombre: true,
             apellido: true,
+            tipoDoc: true,
             nroDoc: true,
           },
         },
@@ -149,8 +158,10 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
             acceso: true,
             evento: {
               select: {
+                idEvento: true,
                 nombre: true,
                 fechaHoraEvento: true,
+                idOrganizacion: true,
               },
             },
           },
@@ -261,7 +272,10 @@ const consumirTicket = async (req: Request, res: Response) => {
 
     const ticketActualizado = await prisma.ticket.update({
       where: { tokenQr },
-      data: { estado: 'consumido' },
+      data: {
+        estado: 'consumido',
+        fechaConsumo: new Date()
+      },
     });
 
     res.status(200).json({
