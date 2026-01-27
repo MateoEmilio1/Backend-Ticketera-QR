@@ -128,12 +128,9 @@ const obtenerTicketPorId = async (req: Request, res: Response) => {
 
 const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
   try {
-    console.log(req.params); // Para depuración
-
-    const { idCliente } = req.params;
-
+    const idCliente = Number(req.params.idCliente);
     // Validar si idCliente existe y es un número válido
-    if (!idCliente || isNaN(Number(idCliente))) {
+    if (!idCliente || isNaN(idCliente)) {
       res.status(400).json({
         message: "El ID de cliente es inválido",
         error: true,
@@ -142,7 +139,7 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
     }
 
     const tickets = await prisma.ticket.findMany({
-      where: { idCliente: Number(idCliente) }, // Convertimos a número de manera segura
+      where: { idCliente: idCliente }, // Convertimos a número de manera segura
       include: {
         cliente: {
           select: {
@@ -168,6 +165,7 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
         },
       },
     });
+
 
     res.status(200).json({
       message: "Tickets obtenidos con éxito",
