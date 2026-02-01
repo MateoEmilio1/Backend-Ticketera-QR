@@ -67,6 +67,7 @@ model TipoTicket {
   tipo           String
   precio         Decimal
   acceso         String
+  sector         String?
   cantMaxPorTipo Int
   idEvento       Int
   tickets        Ticket[]
@@ -82,6 +83,7 @@ model Ticket {
   idTipoTicket  Int
   idCliente     Int
   estado        EstadoTicket @default(pagado)
+  metodoPago    String?
 
   cliente    Cliente    @relation(fields: [idCliente], references: [idCliente])
   tipoTicket TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
@@ -101,6 +103,7 @@ enum Rol {
 
 // Valores posibles de Ticket.estado
 enum EstadoTicket {
+  pendiente
   pagado
   consumido
   expirado
