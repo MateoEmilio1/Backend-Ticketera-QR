@@ -1,22 +1,20 @@
 import { Rol } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
-<<<<<<< Updated upstream
-=======
 import { encrypt, verified } from "../utils/handleCrypt.js";
 import { generateToken } from "../utils/jwt.handle.js";
 import * as crypto from "crypto";
 import { sendPasswordResetEmail } from "../services/emailService.js";
->>>>>>> Stashed changes
 
 // Solo crea ADMINS
 const crearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
+    const hashedPassword = await encrypt(contraseña);
     const usuario = await prisma.usuario.create({
       data: {
         mail,
-        contraseña,
+        contraseña: hashedPassword,
         rol: Rol.ADMIN,
       },
     });
@@ -71,7 +69,7 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
       where: { mail },
     });
 
-    if (!usuario || usuario.contraseña !== contraseña) {
+    if (!usuario) {
       res.status(401).json({
         message: "Usuario o contraseña incorrectos",
         error: true,
@@ -79,12 +77,27 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const contraseñaCorrecta = await verified(contraseña, usuario.contraseña);
+
+    if (!contraseñaCorrecta) {
+      res.status(401).json({
+        message: "Usuario o contraseña incorrectos",
+        error: true,
+      });
+      return;
+    }
+
+    const token = generateToken(String(usuario.idUsuario), usuario.rol);
+
     res.status(200).json({
       message: "Login exitoso",
       data: {
-        idUsuario: usuario.idUsuario,
-        mail: usuario.mail,
-        rol: usuario.rol,
+        token,
+        usuario: {
+          idUsuario: usuario.idUsuario,
+          mail: usuario.mail,
+          rol: usuario.rol,
+        }
       },
       error: false,
     });
@@ -97,10 +110,6 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
-
-<<<<<<< Updated upstream
-export default { crearUsuario , obtenerUsuario, loginUsuario };
-=======
 
 const checkSession = async (req: Request, res: Response) => {
   try {
@@ -187,4 +196,3 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
 };
 
 export default { crearUsuario, obtenerUsuario, loginUsuario, checkSession, forgotPassword, resetPassword };
->>>>>>> Stashed changes
