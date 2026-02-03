@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
 import mainRouter from "./routes/app.routes.js";
 import 'dotenv/config';
-import usuarioRoutes from "./routes/usuario.routes";
+
 // Cargar variables de entorno
 dotenv.config();
 
@@ -15,7 +15,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api", mainRouter);
-app.use("/api/usuario", usuarioRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server started on port ${port}`);
