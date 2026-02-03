@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 const { sign, verify } = jwt;
 
-const JWT_SECRET = process.env.JWT_SECRET || "secreto.01"; // TODO: Move to .env
+const JWT_SECRET = process.env.JWT_SECRET || "secreto.01";
 
 const generateToken = (id: string, rol: string) => {
     const jwt = sign({ id, rol }, JWT_SECRET, {
