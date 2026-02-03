@@ -3,8 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
 import mainRouter from "./routes/app.routes.js";
-import 'dotenv/config';
-import usuarioRoutes from "./routes/usuario.routes";
+import usuarioRoutes from "./routes/usuario.routes.js";
+
 // Cargar variables de entorno
 dotenv.config();
 

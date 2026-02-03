@@ -6,6 +6,7 @@ const router = express.Router();
 router.post("/", eventoController.crearEvento);
 router.get("/", eventoController.obtenerEventos);
 router.get("/estadisticas", eventoController.getEstadisticas);
+router.get("/reportes/ventas-hora", eventoController.getVentasPorHora);
 router.get("/:id", eventoController.obtenerEventosPorId);
 router.put("/:id", eventoController.actualizarEvento);
 router.delete("/:id", eventoController.eliminarEvento);

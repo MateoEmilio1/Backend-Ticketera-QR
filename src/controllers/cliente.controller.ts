@@ -188,7 +188,9 @@ const actualizarCliente = async (req: Request, res: Response) => {
         where: { idUsuario: clienteExistente.idUsuario },
         data: {
           mail: clienteData.mail,
-          ...(clienteData.contraseña && { contraseña: clienteData.contraseña }),
+          ...(clienteData.contraseña && {
+            contraseña: await encrypt(clienteData.contraseña),
+          }),
         },
       }),
     ]);

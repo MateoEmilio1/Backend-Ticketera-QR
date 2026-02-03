@@ -9,12 +9,14 @@ datasource db {
 }
 
 model Usuario {
-  idUsuario    Int           @id @default(autoincrement())
-  mail         String        @unique
-  contraseña  String
-  rol          Rol
-  cliente      Cliente?
-  organizacion Organizacion?
+  idUsuario         Int           @id @default(autoincrement())
+  mail              String        @unique
+  contraseña       String
+  rol               Rol
+  resetToken        String?       @unique
+  resetTokenExpires DateTime?
+  cliente           Cliente?
+  organizacion      Organizacion?
 }
 
 model Cliente {

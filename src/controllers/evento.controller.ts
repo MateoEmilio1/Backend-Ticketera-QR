@@ -202,6 +202,89 @@ const getEstadisticas = async (req: Request, res: Response) => {
   }
 };
 
+// Reporte de Ventas por Hora
+const getVentasPorHora = async (req: Request, res: Response) => {
+  try {
+    const { fechaInicio, fechaFin, idCategoria, idTipoTicket, idEvento } = req.query;
+
+    const whereClause: any = {
+      estado: { in: ['pagado', 'consumido'] } // Solo ventas reales
+    };
+
+    // Filtros de fecha
+    if (fechaInicio || fechaFin) {
+      whereClause.fechaCreacion = {};
+      if (fechaInicio) whereClause.fechaCreacion.gte = new Date(fechaInicio as string);
+      if (fechaFin) whereClause.fechaCreacion.lte = new Date(fechaFin as string);
+    }
+
+    // Filtros por Tipo de Ticket
+    if (idTipoTicket) {
+      whereClause.idTipoTicket = Number(idTipoTicket);
+    }
+
+    // Filtros por Categoria y Evento (Merge relationship filters)
+    if (idCategoria || idEvento) {
+      whereClause.tipoTicket = {
+        evento: {}
+      };
+
+      if (idCategoria) {
+        whereClause.tipoTicket.evento.idCategoria = Number(idCategoria);
+      }
+      if (idEvento) {
+        whereClause.tipoTicket.evento.idEvento = Number(idEvento);
+      }
+    }
+    // Obtenemos los tickets
+    const tickets = await prisma.ticket.findMany({
+      where: whereClause,
+      select: {
+        nroTicket: true,
+        fechaCreacion: true,
+        tipoTicket: {
+          select: { precio: true }
+        }
+      }
+    });
+
+    console.log(`[Reporte Ventas] Tickets encontrados: ${tickets.length}`);
+
+    // Inicializar array de 24 horas
+    const ventasPorHora = Array.from({ length: 24 }, (_, i) => ({
+      hora: `${i}:00`,
+      cantidad: 0,
+      recaudacion: 0
+    }));
+
+    // Procesar datos
+    tickets.forEach(ticket => {
+      const fecha = new Date(ticket.fechaCreacion);
+      const hora = fecha.getHours(); // 0-23
+      console.log(`Ticket #${ticket.nroTicket} - Fecha: ${ticket.fechaCreacion} - Hora detectada: ${hora}`);
+
+      if (hora >= 0 && hora < 24) {
+        ventasPorHora[hora].cantidad += 1;
+        ventasPorHora[hora].recaudacion += Number(ticket.tipoTicket.precio);
+      }
+    });
+
+    res.status(200).json({
+      message: "Reporte de ventas por hora obtenido con éxito",
+      data: ventasPorHora,
+      error: false
+    });
+
+  } catch (error) {
+    console.error("Error en getVentasPorHora:", error);
+    res.status(500).json({
+      message: "Error al generar el reporte",
+      error: true,
+      details: (error as Error).message
+    });
+  }
+};
+
 export default {
   crearEvento,
   obtenerEventos,
@@ -209,5 +292,6 @@ export default {
   eliminarEvento,
   actualizarEvento,
   getEstadisticas,
+  getVentasPorHora,
 };
 
