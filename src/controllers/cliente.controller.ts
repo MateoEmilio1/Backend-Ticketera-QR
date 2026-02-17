@@ -30,7 +30,6 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const hashedPassword = await encrypt(contraseña);
-
     const nuevoCliente = await prisma.cliente.create({
       data: {
         nombre,
@@ -213,10 +212,52 @@ const actualizarCliente = async (req: Request, res: Response) => {
   }
 };
 
+const obtenerClientePorIdUsuario = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { idUsuario } = req.params;
+    const cliente = await prisma.cliente.findUnique({
+      where: { idUsuario: parseInt(idUsuario) },
+      include: {
+        usuario: {
+          select: {
+            mail: true,
+            rol: true,
+          },
+        },
+      },
+    });
+
+    if (!cliente) {
+      res.status(404).json({
+        message: "Cliente no encontrado para este usuario",
+        error: true,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Cliente obtenido con éxito",
+      data: cliente,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en obtenerClientePorIdUsuario:", error);
+    res.status(500).json({
+      message: "Error al obtener el cliente por ID de usuario",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
 export default {
   crearCliente,
   obtenerClientes,
   obtenerClientePorId,
   eliminarCliente,
   actualizarCliente,
+  obtenerClientePorIdUsuario,
 };

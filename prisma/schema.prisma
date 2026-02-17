@@ -69,6 +69,7 @@ model TipoTicket {
   tipo           String
   precio         Decimal
   acceso         String
+  sector         String?
   cantMaxPorTipo Int
   idEvento       Int
   tickets        Ticket[]
@@ -79,10 +80,12 @@ model TipoTicket {
 model Ticket {
   nroTicket     Int          @id @default(autoincrement())
   fechaCreacion DateTime     @default(now())
+  fechaConsumo  DateTime?
   tokenQr       String       @unique
   idTipoTicket  Int
   idCliente     Int
   estado        EstadoTicket @default(pagado)
+  metodoPago    String?
 
   cliente    Cliente    @relation(fields: [idCliente], references: [idCliente])
   tipoTicket TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
@@ -90,7 +93,7 @@ model Ticket {
 
 model Politica {
   fechaVigencia DateTime @id @default(now())
-  diasReembolso Int @default(7)
+  diasReembolso Int      @default(7)
 }
 
 // Enum para definir los roles del usuario
@@ -102,6 +105,7 @@ enum Rol {
 
 // Valores posibles de Ticket.estado
 enum EstadoTicket {
+  pendiente
   pagado
   consumido
   expirado

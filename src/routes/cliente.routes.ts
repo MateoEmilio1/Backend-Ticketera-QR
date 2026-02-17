@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post("/", clienteController.crearCliente);
 router.get("/", clienteController.obtenerClientes);
+router.get("/usuario/:idUsuario", clienteController.obtenerClientePorIdUsuario);
 router.get("/:id", clienteController.obtenerClientePorId);
 router.put("/:id", clienteController.actualizarCliente);
 router.delete("/:id", clienteController.eliminarCliente);

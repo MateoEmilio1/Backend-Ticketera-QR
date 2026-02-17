@@ -1,11 +1,12 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 import { Rol } from "@prisma/client";
+import { encrypt } from "../utils/handleCrypt.js";
 
 export const crearOrganizacion = async (req: Request, res: Response) => {
   try {
     const { eventos, ...organizacionData } = req.body;
-
+    const hashedPassword = await encrypt(organizacionData.contraseña);
     const organizacion = await prisma.organizacion.create({
       data: {
         nombre: organizacionData.nombre,
@@ -15,7 +16,7 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
         usuario: {
           create: {
             mail: organizacionData.mail,
-            contraseña: organizacionData.contraseña,
+            contraseña: hashedPassword,
             rol: Rol.ORGANIZACION,
           },
         },

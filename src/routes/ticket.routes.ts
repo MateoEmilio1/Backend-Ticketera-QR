@@ -11,5 +11,6 @@ router.put("/:id", ticketController.actualizarTicket);
 router.post("/validar/:tokenQr", ticketController.validarTicket);
 router.post("/consumir/:tokenQr", ticketController.consumirTicket);
 router.get("/cliente/:idCliente", ticketController.obtenerTicketsPorIdCliente);
+router.post("/webhook", ticketController.recibirWebhook);
 
 export default router;        
