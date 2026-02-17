@@ -7,8 +7,14 @@ interface RequestExt extends Request {
 
 const checkSession = (req: RequestExt, res: Response, next: NextFunction) => {
     try {
-        const jwtByUser = req.headers.authorization || "";
-        const jwt = jwtByUser.split(" ").pop(); // Bearer <token>
+        const jwt = req.cookies.token || "";
+
+        if (!jwt) {
+            res.status(401);
+            res.send("NO_TIENES_UN_JWT_VALIDO");
+            return;
+        }
+
         const isUser = verifyToken(`${jwt}`);
         if (!isUser) {
             res.status(401);

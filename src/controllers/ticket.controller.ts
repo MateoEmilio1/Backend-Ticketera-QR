@@ -1,17 +1,130 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 import { randomBytes } from "crypto";
+import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+import QRCode from "qrcode";
+
+// Configuración de Mercado Pago
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN || "TEST-6353816718960255-020118-63adf89581727ed5b2a1222f1ec2172b-1647754684"
+});
+
 const crearTicket = async (req: Request, res: Response) => {
   try {
-    const tokenQr = randomBytes(16).toString("hex");
-    req.body.tokenQr = tokenQr;
+    const { idCliente, idTipoTicket, metodoPago } = req.body;
 
-    const ticket = await prisma.ticket.create({
-      data: req.body,
+    // 1. Obtener información del tipo de ticket (para el precio y nombre)
+    const tipoTicket = await prisma.tipoTicket.findUnique({
+      where: { idTipoTicket: Number(idTipoTicket) },
+      include: { evento: true }
     });
 
+    if (!tipoTicket) {
+      return res.status(404).json({
+        message: "Tipo de ticket no encontrado",
+        error: true,
+      });
+    }
+
+    const tokenQr = randomBytes(16).toString("hex");
+
+    // 2. Crear el ticket con estado 'pendiente'
+    const ticket = await prisma.ticket.create({
+      data: {
+        idCliente: Number(idCliente),
+        idTipoTicket: Number(idTipoTicket),
+        tokenQr: tokenQr,
+        metodoPago: metodoPago || "tarjeta",
+        estado: "pendiente"
+      },
+    });
+
+    // 3. Manejar el pago según el método
+    if (metodoPago === "mercadopago") {
+      console.log("Intentando crear preferencia de MP con access token:", process.env.MP_ACCESS_TOKEN ? "DEFINIDO" : "NO DEFINIDO");
+
+      const preference = new Preference(client);
+
+      const preferenceData = {
+        body: {
+          items: [
+            {
+              id: ticket.nroTicket.toString(),
+              title: `Entrada: ${tipoTicket.evento.nombre} - ${tipoTicket.tipo}`,
+              quantity: 1,
+              unit_price: Number(tipoTicket.precio),
+              currency_id: "ARS"
+            }
+          ],
+          back_urls: {
+            success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-exitoso`,
+            failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-fallido`,
+            pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-pendiente`,
+          },
+          auto_return: "approved",
+          notification_url: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/tickets/webhook`,
+          external_reference: ticket.nroTicket.toString()
+        }
+      };
+
+      console.log("Datos de preferencia:", JSON.stringify(preferenceData, null, 2));
+
+      const result = await preference.create(preferenceData);
+
+      console.log("Resultado creación preferencia:", result.id ? "EXITO" : "FALLO", result.init_point);
+
+      return res.status(200).json({
+        message: "Preferencia de Mercado Pago creada",
+        data: {
+          ticket,
+          init_point: result.init_point
+        },
+        error: false,
+      });
+    }
+
+    // Si es tarjeta (Simulación de pago exitoso inmediata para este ejemplo)
+    if (metodoPago === "tarjeta") {
+      const ticketPagado = await prisma.ticket.update({
+        where: { nroTicket: ticket.nroTicket },
+        data: { estado: "pagado" },
+        include: {
+          cliente: {
+            include: { usuario: true }
+          },
+          tipoTicket: {
+            include: { evento: true }
+          }
+        }
+      });
+
+      // Enviar correo
+      if (ticketPagado.cliente?.usuario?.mail) {
+        const { sendTicketEmail } = await import("../services/emailService.js");
+        await sendTicketEmail(ticketPagado.cliente.usuario.mail, {
+          evento: ticketPagado.tipoTicket?.evento?.nombre || "Evento",
+          fecha: new Date(ticketPagado.tipoTicket?.evento?.fechaHoraEvento || new Date()).toLocaleString(),
+          usuario: `${ticketPagado.cliente.nombre} ${ticketPagado.cliente.apellido}`,
+          precio: Number(ticketPagado.tipoTicket?.precio || 0),
+          nroTicket: ticketPagado.nroTicket,
+          qrData: ticketPagado.tokenQr
+        });
+      }
+
+      const qrDataURL = await QRCode.toDataURL(ticketPagado.tokenQr);
+
+      return res.status(200).json({
+        message: "Ticket comprado con éxito (Tarjeta)",
+        data: {
+          ...ticketPagado,
+          qr: qrDataURL
+        },
+        error: false,
+      });
+    }
+
     res.status(200).json({
-      message: "Ticket creado con éxito",
+      message: "Ticket generado (pendiente de pago)",
       data: ticket,
       error: false,
     });
@@ -22,6 +135,58 @@ const crearTicket = async (req: Request, res: Response) => {
       error: true,
       details: (error as Error).message,
     });
+  }
+};
+
+const recibirWebhook = async (req: Request, res: Response) => {
+  try {
+    const { query } = req;
+    const topic = query.topic || query.type;
+
+    if (topic === "payment") {
+      const paymentId = query.id || query["data.id"];
+      console.log(`Pago recibido: ${paymentId}`);
+
+      const payment = new Payment(client);
+      const paymentData = await payment.get({ id: Number(paymentId) });
+
+      if (paymentData.status === 'approved') {
+        const externalReference = paymentData.external_reference;
+
+        if (externalReference) {
+          const ticket = await prisma.ticket.update({
+            where: { nroTicket: parseInt(externalReference) },
+            data: { estado: 'pagado' },
+            include: {
+              cliente: {
+                include: { usuario: true }
+              },
+              tipoTicket: {
+                include: { evento: true }
+              }
+            }
+          });
+          console.log(`Ticket ${externalReference} actualizado a PAGADO.`);
+
+          // Enviar correo
+          if (ticket.cliente?.usuario?.mail) {
+            const { sendTicketEmail } = await import("../services/emailService.js");
+            await sendTicketEmail(ticket.cliente.usuario.mail, {
+              evento: ticket.tipoTicket?.evento?.nombre || "Evento",
+              fecha: new Date(ticket.tipoTicket?.evento?.fechaHoraEvento || new Date()).toLocaleString(),
+              usuario: `${ticket.cliente.nombre} ${ticket.cliente.apellido}`,
+              precio: Number(ticket.tipoTicket?.precio || 0),
+              nroTicket: ticket.nroTicket,
+              qrData: ticket.tokenQr
+            });
+          }
+        }
+      }
+    }
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error en webhook", error);
+    res.sendStatus(500);
   }
 };
 
@@ -357,4 +522,5 @@ export default {
   obtenerTicketsPorIdCliente,
   validarTicket,
   consumirTicket,
+  recibirWebhook,
 };
