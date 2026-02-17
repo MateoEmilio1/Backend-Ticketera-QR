@@ -63,3 +63,47 @@ export const sendTicketEmail = async (
         return false;
     }
 };
+
+export const sendPasswordResetEmail = async (
+    email: string,
+    resetUrl: string
+) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const mailOptions = {
+            from: `"Ticketera QR" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: "Recuperación de contraseña",
+            html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4F46E5; text-align: center;">Recuperación de Contraseña</h2>
+          <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar:</p>
+          
+          <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+             <a href="${resetUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Restablecer Contraseña</a>
+          </div>
+          <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+          <p>Este enlace expirará en 1 hora.</p>
+        </div>
+      `,
+        };
+
+        await transporter.sendMail(mailOptions);
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo de recuperación:", error);
+        return false;
+    }
+};
