@@ -14,8 +14,8 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.use("/api", mainRouter);
 app.use("/api/usuario", usuarioRoutes);
+app.use("/api", mainRouter);
 
 const server = app.listen(port, () => {
   console.log(`Server started on port ${port}`);

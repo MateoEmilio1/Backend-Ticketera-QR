@@ -139,7 +139,7 @@ const forgotPassword = async (req: Request, res: Response): Promise<void> => {
     const token = crypto.randomBytes(20).toString('hex');
     const expires = new Date(Date.now() + 3600000); // 1 hora
 
-    await (prisma.usuario as any).update({
+    await prisma.usuario.update({
       where: { idUsuario: usuario.idUsuario },
       data: {
         resetToken: token,
@@ -166,7 +166,7 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const usuario = await (prisma.usuario as any).findUnique({
+    const usuario = await prisma.usuario.findUnique({
       where: {
         resetToken: token as string
       }
@@ -179,7 +179,7 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
 
     const hashedPassword = await encrypt(nuevaContraseña);
 
-    await (prisma.usuario as any).update({
+    await prisma.usuario.update({
       where: { idUsuario: usuario.idUsuario },
       data: {
         contraseña: hashedPassword,
