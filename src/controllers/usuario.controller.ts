@@ -67,6 +67,7 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
 
     const contraseñaCorrecta = await verified(contraseña, usuario.contraseña);
 
+    console.log({ contraseñaCorrecta })
     if (!contraseñaCorrecta) {
       res.status(401).json({
         message: "Usuario o contraseña incorrectos",
@@ -77,16 +78,14 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
 
     const token = generateToken(String(usuario.idUsuario), usuario.rol);
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 1 dia
+    });
+
     res.status(200).json({
       message: "Login exitoso",
-      data: {
-        token,
-        usuario: {
-          idUsuario: usuario.idUsuario,
-          mail: usuario.mail,
-          rol: usuario.rol,
-        }
-      },
       error: false,
     });
   } catch (error) {
@@ -99,11 +98,16 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const logoutUsuario = (req: Request, res: Response) => {
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logout exitoso" });
+};
 
-const checkSession = async (req: Request, res: Response) => {
+
+const getUsuarioLogueado = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
-    const user = req.user;
+    const user = req.user; // podriamos editar el tipo Request para que tenga el usuario
     res.send(user);
   } catch (e) {
     res.status(500);
@@ -111,4 +115,4 @@ const checkSession = async (req: Request, res: Response) => {
   }
 }
 
-export default { crearUsuario, obtenerUsuario, loginUsuario, checkSession };
+export default { crearUsuario, obtenerUsuario, loginUsuario, getUsuarioLogueado, logoutUsuario };
