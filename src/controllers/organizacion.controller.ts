@@ -139,13 +139,37 @@ const actualizarOrganizacion = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { eventos, ...organizacionData } = req.body;
 
-    const organizacionActualizada = await prisma.organizacion.update({
+    const organizacionExistente = await prisma.organizacion.findUnique({
       where: { idOrganizacion: parseInt(id) },
-      data: {
-        ...organizacionData,
-        ...(eventos?.length > 0 ? { eventos: { create: eventos } } : {}),
-      },
+      include: { usuario: true },
     });
+
+    if (!organizacionExistente) {
+      res.status(404).json({ message: "Organización no encontrada", error: true });
+      return;
+    }
+
+    const [organizacionActualizada] = await prisma.$transaction([
+      prisma.organizacion.update({
+        where: { idOrganizacion: parseInt(id) },
+        data: {
+          nombre: organizacionData.nombre,
+          cuit: organizacionData.cuit,
+          ubicacion: organizacionData.ubicacion,
+          ...(eventos?.length > 0 ? { eventos: { create: eventos } } : {}),
+        },
+        include: { usuario: true },
+      }),
+      prisma.usuario.update({
+        where: { idUsuario: organizacionExistente.idUsuario },
+        data: {
+          mail: organizacionData.mail,
+          ...(organizacionData.contraseña && {
+            contraseña: await encrypt(organizacionData.contraseña),
+          }),
+        },
+      }),
+    ]);
 
     res.status(200).json({
       message: "Organización actualizada con éxito",
@@ -153,8 +177,50 @@ const actualizarOrganizacion = async (req: Request, res: Response) => {
       error: false,
     });
   } catch (error) {
+    console.error("Error en actualizarOrganizacion:", error);
     res.status(500).json({
       message: "Error al actualizar la organización",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
+const obtenerOrganizacionPorIdUsuario = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { idUsuario } = req.params;
+    const organizacion = await prisma.organizacion.findUnique({
+      where: { idUsuario: parseInt(idUsuario) },
+      include: {
+        usuario: {
+          select: {
+            mail: true,
+            rol: true,
+          },
+        },
+      },
+    });
+
+    if (!organizacion) {
+      res.status(404).json({
+        message: "Organización no encontrada para este usuario",
+        error: true,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Organización obtenida con éxito",
+      data: organizacion,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en obtenerOrganizacionPorIdUsuario:", error);
+    res.status(500).json({
+      message: "Error al obtener la organización por ID de usuario",
       error: true,
       details: (error as Error).message,
     });
@@ -166,4 +232,5 @@ export default {
   obtenerOrganizacionPorId,
   eliminarOrganizacion,
   actualizarOrganizacion,
+  obtenerOrganizacionPorIdUsuario,
 };

@@ -1,4 +1,4 @@
-import tipoTicketController from "../controllers/tipoTicket.controller";
+import tipoTicketController from "../controllers/tipoTicket.controller.js";
 import express from "express";
 
 const router = express.Router();

@@ -79,16 +79,6 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
 
     const contraseñaCorrecta = await verified(contraseña, usuario.contraseña);
 
-    if (!contraseñaCorrecta) {
-      res.status(401).json({
-        message: "Usuario o contraseña incorrectos",
-        error: true,
-      });
-      return;
-    }
-
-    const contraseñaCorrecta = await verified(contraseña, usuario.contraseña);
-
     console.log({ contraseñaCorrecta })
     if (!contraseñaCorrecta) {
       res.status(401).json({
@@ -211,4 +201,4 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export default { crearUsuario, obtenerUsuario, loginUsuario, checkSession, forgotPassword, resetPassword };
+export default { crearUsuario, obtenerUsuario, loginUsuario, logoutUsuario, getUsuarioLogueado, forgotPassword, resetPassword };
