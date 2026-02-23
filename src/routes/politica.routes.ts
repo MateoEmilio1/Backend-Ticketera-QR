@@ -1,5 +1,5 @@
 import express from 'express';
-import politicaController from '../controllers/politica.controller';
+import politicaController from '../controllers/politica.controller.js';
 
 const router = express.Router();
 

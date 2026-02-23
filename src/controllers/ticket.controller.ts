@@ -1,4 +1,5 @@
 import { prisma } from "../prisma.js";
+import { EstadoTicket } from "@prisma/client";
 import { Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
@@ -34,9 +35,9 @@ const crearTicket = async (req: Request, res: Response) => {
         idCliente: Number(idCliente),
         idTipoTicket: Number(idTipoTicket),
         tokenQr: tokenQr,
-        metodoPago: metodoPago || "tarjeta",
-        estado: "pendiente"
-      },
+        metodoPago: (metodoPago || "tarjeta"),
+        estado: EstadoTicket.pendiente
+      } as any,
     });
 
     // 3. Manejar el pago según el método
@@ -87,7 +88,7 @@ const crearTicket = async (req: Request, res: Response) => {
     if (metodoPago === "tarjeta") {
       const ticketPagado = await prisma.ticket.update({
         where: { nroTicket: ticket.nroTicket },
-        data: { estado: "pagado" },
+        data: { estado: EstadoTicket.pagado },
         include: {
           cliente: {
             include: { usuario: true }
@@ -156,7 +157,7 @@ const recibirWebhook = async (req: Request, res: Response) => {
         if (externalReference) {
           const ticket = await prisma.ticket.update({
             where: { nroTicket: parseInt(externalReference) },
-            data: { estado: 'pagado' },
+            data: { estado: EstadoTicket.pagado },
             include: {
               cliente: {
                 include: { usuario: true }
@@ -436,9 +437,9 @@ const consumirTicket = async (req: Request, res: Response) => {
     const ticketActualizado = await prisma.ticket.update({
       where: { tokenQr },
       data: {
-        estado: 'consumido',
+        estado: EstadoTicket.consumido,
         fechaConsumo: new Date()
-      },
+      } as any,
     });
 
     res.status(200).json({
@@ -513,6 +514,165 @@ const actualizarTicket = async (req: Request, res: Response) => {
   }
 };
 
+const transferirTicket = async (req: Request, res: Response) => {
+  try {
+    const { nroTicket, mailNuevoDueño } = req.body;
+
+    if (!nroTicket || !mailNuevoDueño) {
+      return res.status(400).json({
+        message: "Número de ticket y mail del nuevo dueño son obligatorios",
+        error: true,
+      });
+    }
+
+    const nuevoDueño = await prisma.usuario.findUnique({
+      where: { mail: mailNuevoDueño },
+      include: { cliente: true },
+    });
+
+    if (!nuevoDueño || !nuevoDueño.cliente) {
+      return res.status(404).json({
+        message: "El usuario destino no existe o no es un cliente",
+        error: true,
+      });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { nroTicket: Number(nroTicket) },
+      include: { cliente: { include: { usuario: true } } },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        message: "Ticket no encontrado",
+        error: true,
+      });
+    }
+
+    if (ticket.estado !== EstadoTicket.pagado) {
+      return res.status(400).json({
+        message: "Solo se pueden transferir tickets pagados",
+        error: true,
+      });
+    }
+
+    if (ticket.cliente.usuario.mail === mailNuevoDueño) {
+      return res.status(400).json({
+        message: "No puedes transferir un ticket a ti mismo",
+        error: true,
+      });
+    }
+
+    const ticketTransferido = await prisma.ticket.update({
+      where: { nroTicket: Number(nroTicket) },
+      data: { idCliente: nuevoDueño.cliente.idCliente },
+      include: {
+        cliente: { include: { usuario: true } },
+        tipoTicket: { include: { evento: true } },
+      },
+    });
+
+    // Enviar correo al nuevo dueño
+    if (ticketTransferido.cliente?.usuario?.mail) {
+      const { sendTicketEmail } = await import("../services/emailService.js");
+      await sendTicketEmail(ticketTransferido.cliente.usuario.mail, {
+        evento: ticketTransferido.tipoTicket?.evento?.nombre || "Evento",
+        fecha: new Date(ticketTransferido.tipoTicket?.evento?.fechaHoraEvento || new Date()).toLocaleString(),
+        usuario: `${ticketTransferido.cliente.nombre} ${ticketTransferido.cliente.apellido}`,
+        precio: Number(ticketTransferido.tipoTicket?.precio || 0),
+        nroTicket: ticketTransferido.nroTicket,
+        qrData: ticketTransferido.tokenQr
+      });
+    }
+
+    res.status(200).json({
+      message: "Ticket transferido con éxito",
+      data: ticketTransferido,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en transferirTicket", error);
+    res.status(500).json({
+      message: "Error al transferir el ticket",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
+const reembolsarTicket = async (req: Request, res: Response) => {
+  try {
+    const { nroTicket } = req.body;
+
+    if (!nroTicket) {
+      return res.status(400).json({
+        message: "Número de ticket es obligatorio",
+        error: true,
+      });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { nroTicket: Number(nroTicket) },
+      include: {
+        tipoTicket: {
+          include: {
+            evento: true
+          }
+        }
+      }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        message: "Ticket no encontrado",
+        error: true,
+      });
+    }
+
+    if (ticket.estado !== EstadoTicket.pagado) {
+      return res.status(400).json({
+        message: "Solo se pueden reembolsar tickets pagados",
+        error: true,
+      });
+    }
+
+    // Validar política de reembolso
+    const politica = await prisma.politica.findFirst({
+      orderBy: { fechaVigencia: 'desc' }
+    });
+
+    const diasLimite = politica?.diasReembolso || 7;
+    const fechaEvento = new Date(ticket.tipoTicket.evento.fechaHoraEvento);
+    const hoy = new Date();
+    const diferenciaDias = (fechaEvento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diferenciaDias < diasLimite) {
+      return res.status(400).json({
+        message: `No se puede reembolsar. La política requiere al menos ${diasLimite} días de anticipación.`,
+        error: true,
+      });
+    }
+
+    const ticketReembolsado = await prisma.ticket.update({
+      where: { nroTicket: Number(nroTicket) },
+      data: { estado: EstadoTicket.reembolsado },
+    });
+
+    res.status(200).json({
+      message: "Ticket reembolsado con éxito",
+      data: ticketReembolsado,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en reembolsarTicket", error);
+    res.status(500).json({
+      message: "Error al reembolsar el ticket",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
 export default {
   crearTicket,
   obtenerTickets,
@@ -523,4 +683,6 @@ export default {
   validarTicket,
   consumirTicket,
   recibirWebhook,
+  transferirTicket,
+  reembolsarTicket,
 };
