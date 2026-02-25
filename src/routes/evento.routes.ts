@@ -11,6 +11,7 @@ router.post("/", validate(crearEventoSchema), eventoController.crearEvento);
 router.get("/", eventoController.obtenerEventos);
 router.get("/estadisticas", eventoController.getEstadisticas);
 router.get("/ventas-hora", eventoController.getVentasPorHora);
+router.get("/reporte-categoria", eventoController.getEventosPorCategoria);
 router.get("/:id", validate(idParamSchema), eventoController.obtenerEventosPorId);
 router.delete("/:id", validate(idParamSchema), eventoController.eliminarEvento);
 router.put("/:id", validate(actualizarEventoSchema), eventoController.actualizarEvento);

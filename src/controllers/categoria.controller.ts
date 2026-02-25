@@ -1,7 +1,7 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
-export const crearCategoria = async (req: Request, res: Response) => {
+export const crearCategoria = async (req: Request, res: Response): Promise<void> => {
   try {
     const categoria = await prisma.categoria.create({
       data: {
@@ -24,9 +24,22 @@ export const crearCategoria = async (req: Request, res: Response) => {
   }
 };
 
-export const obtenerCategorias = async (req: Request, res: Response) => {
+export const obtenerCategorias = async (req: Request, res: Response): Promise<void> => {
   try {
-    const categorias = await prisma.categoria.findMany();
+    const { nombre } = req.query;
+
+    const whereClause: any = {};
+    if (nombre) {
+      whereClause.nombreCategoria = {
+        contains: String(nombre),
+        mode: 'insensitive'
+      };
+    }
+
+    const categorias = await prisma.categoria.findMany({
+      where: whereClause
+    });
+
     res.status(200).json({
       message: "categorias obtenidos con éxito",
       data: categorias,
@@ -42,7 +55,7 @@ export const obtenerCategorias = async (req: Request, res: Response) => {
   }
 };
 
-export const obtenerCategoriaPorId = async (req: Request, res: Response) => {
+export const obtenerCategoriaPorId = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const categoria = await prisma.categoria.findUnique({
@@ -72,7 +85,7 @@ export const obtenerCategoriaPorId = async (req: Request, res: Response) => {
   }
 };
 
-export const actualizarCategoria = async (req: Request, res: Response) => {
+export const actualizarCategoria = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const categoriaActualizada = await prisma.categoria.update({
