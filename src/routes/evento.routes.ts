@@ -1,14 +1,19 @@
 import express from "express";
 import eventoController from "../controllers/evento.controller.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { actualizarEventoSchema, crearEventoSchema } from "../schemas/evento.schema.js";
+
+import { idParamSchema } from "../schemas/common.schema.js";
 
 const router = express.Router();
 
-router.post("/", eventoController.crearEvento);
+router.post("/", validate(crearEventoSchema), eventoController.crearEvento);
 router.get("/", eventoController.obtenerEventos);
 router.get("/estadisticas", eventoController.getEstadisticas);
-router.get("/reportes/ventas-hora", eventoController.getVentasPorHora);
-router.get("/:id", eventoController.obtenerEventosPorId);
-router.put("/:id", eventoController.actualizarEvento);
-router.delete("/:id", eventoController.eliminarEvento);
+router.get("/ventas-hora", eventoController.getVentasPorHora);
+router.get("/:id", validate(idParamSchema), eventoController.obtenerEventosPorId);
+router.delete("/:id", validate(idParamSchema), eventoController.eliminarEvento);
+router.put("/:id", validate(actualizarEventoSchema), eventoController.actualizarEvento);
+router.patch("/:id/cancelar", validate(idParamSchema), eventoController.cancelarEvento);
 
 export default router;

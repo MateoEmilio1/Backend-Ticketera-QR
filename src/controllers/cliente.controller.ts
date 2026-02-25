@@ -14,21 +14,6 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
       nroDoc,
       fechaNacimiento,
     } = req.body;
-
-    if (
-      !mail ||
-      !contraseña ||
-      !nombre ||
-      !apellido ||
-      !tipoDoc ||
-      !nroDoc ||
-      !fechaNacimiento
-    ) {
-      res
-        .status(400)
-        .json({ message: "Todos los campos son obligatorios", error: true });
-      return;
-    }
     const hashedPassword = await encrypt(contraseña);
     const nuevoCliente = await prisma.cliente.create({
       data: {

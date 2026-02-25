@@ -1,4 +1,3 @@
-import { error } from "console";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 
@@ -25,7 +24,7 @@ export const crearCategoria = async (req: Request, res: Response) => {
   }
 };
 
-const obtenerCategorias = async (req: Request, res: Response) => {
+export const obtenerCategorias = async (req: Request, res: Response) => {
   try {
     const categorias = await prisma.categoria.findMany();
     res.status(200).json({
@@ -38,12 +37,42 @@ const obtenerCategorias = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Error al obtener las Categorias",
       error: true,
-      details: (error as Error).message, // 👈 Casting a Error,
+      details: (error as Error).message,
     });
   }
 };
 
-const updateCategoria = async (req: Request, res: Response) => {
+export const obtenerCategoriaPorId = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const categoria = await prisma.categoria.findUnique({
+      where: { idCategoria: parseInt(id) },
+    });
+
+    if (!categoria) {
+      res.status(404).json({
+        message: "Categoría no encontrada",
+        error: true,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Categoría obtenida con éxito",
+      data: categoria,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en obtenerCategoriaPorId", error);
+    res.status(500).json({
+      message: "Error al obtener la categoría",
+      error: true,
+      details: (error as Error).message,
+    });
+  }
+};
+
+export const actualizarCategoria = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const categoriaActualizada = await prisma.categoria.update({
@@ -56,7 +85,7 @@ const updateCategoria = async (req: Request, res: Response) => {
       error: false,
     });
   } catch (error) {
-    console.error("Error en updateCategoria", error);
+    console.error("Error en actualizarCategoria", error);
     res.status(500).json({
       message: "Error al actualizar la categoría",
       error: true,
@@ -65,7 +94,7 @@ const updateCategoria = async (req: Request, res: Response) => {
   }
 };
 
-const eliminarCategoria = async (
+export const eliminarCategoria = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -97,6 +126,7 @@ const eliminarCategoria = async (
 export default {
   crearCategoria,
   obtenerCategorias,
-  updateCategoria,
+  obtenerCategoriaPorId,
+  actualizarCategoria,
   eliminarCategoria,
 };

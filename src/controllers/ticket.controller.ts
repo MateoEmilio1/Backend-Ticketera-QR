@@ -351,13 +351,6 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response) => {
 const validarTicket = async (req: Request, res: Response) => {
   try {
     const { tokenQr } = req.params;
-    if (!tokenQr) {
-      res.status(400).json({
-        message: "Token QR es requerido",
-        error: true,
-      });
-      return;
-    }
 
     const ticket = await prisma.ticket.findUnique({
       where: { tokenQr },
@@ -374,6 +367,14 @@ const validarTicket = async (req: Request, res: Response) => {
     if (!ticket) {
       res.status(404).json({
         message: "Ticket no encontrado",
+        error: true,
+      });
+      return;
+    }
+
+    if (ticket.estado !== 'pagado') {
+      res.status(400).json({
+        message: `El ticket no es válido para ingreso (Estado: ${ticket.estado})`,
         error: true,
       });
       return;
@@ -398,14 +399,6 @@ const consumirTicket = async (req: Request, res: Response) => {
   try {
     const { tokenQr } = req.params;
 
-    if (!tokenQr) {
-      res.status(400).json({
-        message: "Token QR es requerido",
-        error: true,
-      });
-      return;
-    }
-
     const ticket = await prisma.ticket.findUnique({
       where: { tokenQr },
     });
@@ -418,18 +411,16 @@ const consumirTicket = async (req: Request, res: Response) => {
       return;
     }
 
-    if (ticket.estado === 'consumido') {
-      res.status(400).json({
-        message: "El ticket ya ha sido consumido",
-        error: true,
-      });
-      return;
-    }
+    if (ticket.estado !== 'pagado') {
+      let msg = "Solo se pueden consumir tickets pagados";
+      if (ticket.estado === 'consumido') msg = "El ticket ya ha sido consumido";
+      if (ticket.estado === 'expirado') msg = "El ticket ha expirado";
+      if (ticket.estado === 'reembolsado') msg = "El ticket ha sido reembolsado";
 
-    if (ticket.estado === 'expirado' || ticket.estado === 'reembolsado') {
       res.status(400).json({
-        message: `El ticket no es válido (Estado: ${ticket.estado})`,
+        message: msg,
         error: true,
+        estadoActual: ticket.estado
       });
       return;
     }
@@ -437,13 +428,13 @@ const consumirTicket = async (req: Request, res: Response) => {
     const ticketActualizado = await prisma.ticket.update({
       where: { tokenQr },
       data: {
-        estado: EstadoTicket.consumido,
+        estado: 'consumido',
         fechaConsumo: new Date()
       } as any,
     });
 
     res.status(200).json({
-      message: "Ticket consumido con éxito",
+      message: "Ticket consumido con éxito. ¡Bienvenido!",
       data: ticketActualizado,
       error: false,
     });
@@ -517,13 +508,6 @@ const actualizarTicket = async (req: Request, res: Response) => {
 const transferirTicket = async (req: Request, res: Response) => {
   try {
     const { nroTicket, mailNuevoDueño } = req.body;
-
-    if (!nroTicket || !mailNuevoDueño) {
-      return res.status(400).json({
-        message: "Número de ticket y mail del nuevo dueño son obligatorios",
-        error: true,
-      });
-    }
 
     const nuevoDueño = await prisma.usuario.findUnique({
       where: { mail: mailNuevoDueño },
@@ -603,13 +587,6 @@ const transferirTicket = async (req: Request, res: Response) => {
 const reembolsarTicket = async (req: Request, res: Response) => {
   try {
     const { nroTicket } = req.body;
-
-    if (!nroTicket) {
-      return res.status(400).json({
-        message: "Número de ticket es obligatorio",
-        error: true,
-      });
-    }
 
     const ticket = await prisma.ticket.findUnique({
       where: { nroTicket: Number(nroTicket) },

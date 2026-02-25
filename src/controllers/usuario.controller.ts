@@ -57,14 +57,6 @@ const loginUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, contraseña } = req.body;
 
-    if (!mail || !contraseña) {
-      res.status(400).json({
-        message: "Email y contraseña son requeridos",
-        error: true,
-      });
-      return;
-    }
-
     const usuario = await prisma.usuario.findUnique({
       where: { mail },
     });
@@ -129,10 +121,6 @@ const getUsuarioLogueado = async (req: Request, res: Response) => {
 const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail } = req.body;
-    if (!mail) {
-      res.status(400).json({ message: "Email es requerido", error: true });
-      return;
-    }
 
     const usuario = await prisma.usuario.findUnique({ where: { mail } });
     if (!usuario) {
@@ -165,11 +153,6 @@ const forgotPassword = async (req: Request, res: Response): Promise<void> => {
 const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, nuevaContraseña } = req.body;
-
-    if (!token || !nuevaContraseña) {
-      res.status(400).json({ message: "Token y nueva contraseña son requeridos", error: true });
-      return;
-    }
 
     const usuario = await prisma.usuario.findUnique({
       where: {

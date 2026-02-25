@@ -16,24 +16,6 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
       tipoTickets,
     } = req.body;
 
-    if (
-      !nombre ||
-      !fechaCreacion ||
-      !fechaHoraEvento ||
-      !capacidadMax ||
-      !foto ||
-      !idCategoria ||
-      !idOrganizacion
-    ) {
-      res.status(400).json({ message: "Todos los campos son obligatorios", error: true });
-      return;
-    }
-
-    if (!Array.isArray(tipoTickets) || tipoTickets.length === 0) {
-      res.status(400).json({ message: "Debe incluir al menos un tipo de ticket", error: true });
-      return;
-    }
-
     const evento = await prisma.evento.create({
       data: {
         nombre,
@@ -45,7 +27,7 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
         categoria: { connect: { idCategoria } },
         organizacion: { connect: { idOrganizacion } },
         tipoTickets: {
-          create: tipoTickets.map((ticket) => ({
+          create: tipoTickets.map((ticket: { tipo: any; precio: any; acceso: any; cantMaxPorTipo: any; }) => ({
             tipo: ticket.tipo,
             precio: ticket.precio,
             acceso: ticket.acceso,
@@ -130,6 +112,37 @@ const actualizarEvento = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Evento actualizado con éxito", data: EventoActualizado, error: false });
   } catch (error) {
     res.status(500).json({ message: "Error al actualizar el Evento", error: true, details: (error as Error).message });
+  }
+};
+
+const cancelarEvento = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+
+    const evento = await prisma.evento.findUnique({
+      where: { idEvento: parseInt(id) },
+    });
+
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado", error: true });
+    }
+
+    // Como el modelo no tiene campo 'estado', actualizamos la descripción
+    await prisma.evento.update({
+      where: { idEvento: parseInt(id) },
+      data: {
+        descripcion: `[CANCELADO] ${motivo || ''} - ${evento.descripcion}`
+      }
+    });
+
+    res.status(200).json({
+      message: "Evento cancelado con éxito",
+      error: false
+    });
+  } catch (error) {
+    console.error("Error en cancelarEvento:", error);
+    res.status(500).json({ message: "Error al cancelar el evento", error: true });
   }
 };
 
@@ -291,6 +304,7 @@ export default {
   obtenerEventosPorId,
   eliminarEvento,
   actualizarEvento,
+  cancelarEvento,
   getEstadisticas,
   getVentasPorHora,
 };

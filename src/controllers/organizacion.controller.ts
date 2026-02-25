@@ -6,6 +6,18 @@ import { encrypt } from "../utils/handleCrypt.js";
 export const crearOrganizacion = async (req: Request, res: Response) => {
   try {
     const { eventos, ...organizacionData } = req.body;
+
+    const existingOrg = await prisma.organizacion.findUnique({
+      where: { cuit: organizacionData.cuit }
+    });
+
+    if (existingOrg) {
+      return res.status(400).json({
+        message: "Ya existe una organización registrada con este CUIT",
+        error: true
+      });
+    }
+
     const hashedPassword = await encrypt(organizacionData.contraseña);
     const organizacion = await prisma.organizacion.create({
       data: {
