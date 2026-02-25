@@ -17,7 +17,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
     } = req.body;
 
     // Validación de teléfono (CU05)
-    if (telefono && !/^\d{8,15}$/.test(telefono)) {
+    if (telefono && !/^(\+?\d{8,15})$/.test(telefono)) {
       res.status(400).json({
         message: "El formato del número de teléfono es inválido",
         error: true,
