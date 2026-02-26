@@ -9,6 +9,7 @@ router.get("/estadisticas", eventoController.getEstadisticas);
 router.get("/reportes/ventas-hora", eventoController.getVentasPorHora);
 router.get("/:id", eventoController.obtenerEventosPorId);
 router.put("/:id", eventoController.actualizarEvento);
+router.patch("/:id/cancelar", eventoController.cancelarEvento);
 router.delete("/:id", eventoController.eliminarEvento);
 
 export default router;

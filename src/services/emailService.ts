@@ -107,3 +107,58 @@ export const sendPasswordResetEmail = async (
         return false;
     }
 };
+
+export const sendEventCancellationEmail = async (
+    email: string,
+    notificationInfo: {
+        evento: string;
+        fecha: string;
+        usuario: string;
+    }
+) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const mailOptions = {
+            from: `"Ticketera QR" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `IMPORTANTE: Cancelación de evento ${notificationInfo.evento}`,
+            html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #ef4444; text-align: center;">Evento Cancelado</h2>
+          <p>Hola <strong>${notificationInfo.usuario}</strong>,</p>
+          <p>Lamentamos informarte que el evento <strong>${notificationInfo.evento}</strong>, programado para el <strong>${notificationInfo.fecha}</strong>, ha sido cancelado.</p>
+          
+          <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ef4444;">
+            <p style="margin: 5px 0;"><strong>Motivo:</strong> Cancelación por parte del organizador.</p>
+            <p style="margin: 5px 0;"><strong>Reembolso:</strong> Tu entrada ha sido marcada como "reembolsada". El proceso de devolución de dinero se realizará a través del mismo medio de pago utilizado.</p>
+          </div>
+
+          <p style="color: #4b5563;">Si tienes alguna duda, puedes contactarnos respondiendo a este correo.</p>
+          
+          <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/clientes/mis-tickets" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver mis tickets</a>
+          </div>
+        </div>
+      `,
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Correo de cancelación enviado: %s", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo de cancelación:", error);
+        return false;
+    }
+};
