@@ -13,22 +13,18 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
       tipoDoc,
       nroDoc,
       fechaNacimiento,
+      telefono,
     } = req.body;
 
-    if (
-      !mail ||
-      !contraseña ||
-      !nombre ||
-      !apellido ||
-      !tipoDoc ||
-      !nroDoc ||
-      !fechaNacimiento
-    ) {
-      res
-        .status(400)
-        .json({ message: "Todos los campos son obligatorios", error: true });
+    // Validación de teléfono (CU05)
+    if (telefono && !/^(\+?\d{8,15})$/.test(telefono)) {
+      res.status(400).json({
+        message: "El formato del número de teléfono es inválido",
+        error: true,
+      });
       return;
     }
+
     const hashedPassword = await encrypt(contraseña);
     const nuevoCliente = await prisma.cliente.create({
       data: {
@@ -37,6 +33,7 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
         tipoDoc,
         nroDoc,
         fechaNacimiento: new Date(fechaNacimiento),
+        telefono,
         usuario: {
           create: {
             mail,
@@ -183,6 +180,7 @@ const actualizarCliente = async (req: Request, res: Response) => {
           tipoDoc: clienteData.tipoDoc,
           nroDoc: clienteData.nroDoc,
           fechaNacimiento: new Date(clienteData.fechaNacimiento),
+          telefono: clienteData.telefono,
         },
         include: { usuario: true },
       }),

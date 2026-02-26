@@ -27,6 +27,7 @@ model Cliente {
   tipoDoc         String
   nroDoc          String   @unique
   fechaNacimiento DateTime
+  telefono        String?
   tickets         Ticket[]
 
   usuario Usuario @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
