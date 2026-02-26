@@ -116,36 +116,6 @@ const actualizarEvento = async (req: Request, res: Response) => {
   }
 };
 
-const cancelarEvento = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { motivo } = req.body;
-
-    const evento = await prisma.evento.findUnique({
-      where: { idEvento: parseInt(id) },
-    });
-
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado", error: true });
-    }
-
-    // Como el modelo no tiene campo 'estado', actualizamos la descripción
-    await prisma.evento.update({
-      where: { idEvento: parseInt(id) },
-      data: {
-        descripcion: `[CANCELADO] ${motivo || ''} - ${evento.descripcion}`
-      }
-    });
-
-    res.status(200).json({
-      message: "Evento cancelado con éxito",
-      error: false
-    });
-  } catch (error) {
-    console.error("Error en cancelarEvento:", error);
-    res.status(500).json({ message: "Error al cancelar el evento", error: true });
-  }
-};
 
 // Obtener estadísticas
 const getEstadisticas = async (req: Request, res: Response) => {
@@ -361,6 +331,9 @@ const getEventosPorCategoria = async (req: Request, res: Response) => {
       message: "Error al generar el reporte",
       error: true
     });
+  }
+};
+
 // Cancelar un evento
 const cancelarEvento = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -446,6 +419,4 @@ export default {
   getEstadisticas,
   getVentasPorHora,
   getEventosPorCategoria,
-  cancelarEvento,
 };
-
