@@ -1,5 +1,6 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
+import { sendEventCancellationEmail } from "../services/emailService.js";
 
 // Crear un Evento
 const crearEvento = async (req: Request, res: Response): Promise<void> => {
@@ -173,12 +174,14 @@ const getEstadisticas = async (req: Request, res: Response) => {
       const tickets = evento.tipoTickets.flatMap((t) => t.tickets);
       const vendidos = tickets.length;
       const reembolsados = tickets.filter((t) => t.estado === "reembolsado").length;
-      const recaudacion = tickets.reduce(
-        (sum, t) =>
-          sum +
-          Number(evento.tipoTickets.find((tt) => tt.idTipoTicket === t.idTipoTicket)?.precio || 0),
-        0
-      );
+      const recaudacion = tickets
+        .filter((t) => t.estado === "pagado" || t.estado === "consumido")
+        .reduce(
+          (sum, t) =>
+            sum +
+            Number(evento.tipoTickets.find((tt) => tt.idTipoTicket === t.idTipoTicket)?.precio || 0),
+          0
+        );
 
       const edades = tickets
         .map((t) => {
@@ -358,6 +361,78 @@ const getEventosPorCategoria = async (req: Request, res: Response) => {
       message: "Error al generar el reporte",
       error: true
     });
+// Cancelar un evento
+const cancelarEvento = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const idEvento = parseInt(id);
+
+    // 1. Obtener el evento para verificar que existe, incluyendo tickets y clientes para notificar
+    const evento = await prisma.evento.findUnique({
+      where: { idEvento },
+      include: {
+        tipoTickets: {
+          include: {
+            tickets: {
+              where: { estado: 'pagado' }, // Solo los que están pagados necesitan notificación de reembolso
+              include: {
+                cliente: {
+                  include: { usuario: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!evento) {
+      res.status(404).json({ message: "Evento no encontrado", error: true });
+      return;
+    }
+
+    // 2. Transacción para actualizar el estado del evento y sus tickets
+    await prisma.$transaction(async (tx) => {
+      // Actualizar estado del evento
+      await tx.evento.update({
+        where: { idEvento },
+        data: { estado: 'CANCELADO' }
+      });
+
+      // Actualizar todos los tickets pagados a reembolsado
+      const tipoTicketIds = evento.tipoTickets.map(tt => tt.idTipoTicket);
+      await tx.ticket.updateMany({
+        where: {
+          idTipoTicket: { in: tipoTicketIds },
+          estado: 'pagado'
+        },
+        data: { estado: 'reembolsado' }
+      });
+    });
+
+    // 3. Enviar notificaciones de manera asíncrona (sin bloquear la respuesta)
+    const ticketsPorNotificar = evento.tipoTickets.flatMap(tt => tt.tickets);
+
+    // Usamos Promise.allSettled por si alguno falla, no afecte al resto
+    Promise.allSettled(ticketsPorNotificar.map(ticket => {
+      const email = ticket.cliente.usuario.mail;
+      const nombreUsuario = `${ticket.cliente.nombre} ${ticket.cliente.apellido}`;
+      const fechaEvento = evento.fechaHoraEvento.toLocaleDateString();
+
+      return sendEventCancellationEmail(email, {
+        evento: evento.nombre,
+        fecha: fechaEvento,
+        usuario: nombreUsuario
+      });
+    })).then(results => {
+      const exitosos = results.filter(r => r.status === 'fulfilled').length;
+      console.log(`Notificaciones enviadas: ${exitosos}/${ticketsPorNotificar.length}`);
+    });
+
+    res.status(200).json({ message: "Evento cancelado con éxito y tickets reembolsados", error: false });
+  } catch (error) {
+    console.error("Error al cancelar evento:", error);
+    res.status(500).json({ message: "Error al cancelar el evento", error: true, details: (error as Error).message });
   }
 };
 
@@ -371,5 +446,6 @@ export default {
   getEstadisticas,
   getVentasPorHora,
   getEventosPorCategoria,
+  cancelarEvento,
 };
 

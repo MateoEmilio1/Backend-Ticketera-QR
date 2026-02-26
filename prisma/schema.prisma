@@ -60,9 +60,16 @@ model Evento {
   idCategoria     Int
   idOrganizacion  Int
   foto            String
+  estado          EstadoEvento @default(ACTIVO)
   categoria       Categoria    @relation(fields: [idCategoria], references: [idCategoria])
   organizacion    Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
   tipoTickets     TipoTicket[]
+}
+
+enum EstadoEvento {
+  ACTIVO
+  CANCELADO
+  FINALIZADO
 }
 
 model TipoTicket {
