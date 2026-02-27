@@ -7,6 +7,33 @@ export const crearOrganizacion = async (req: Request, res: Response) => {
   try {
     const { eventos, ...organizacionData } = req.body;
 
+    // Función para validar CUIT (CU08)
+    const validarCUIT = (cuit: string): boolean => {
+      cuit = cuit.replace(/[-_]/g, "");
+      if (cuit.length !== 11 || !/^\d+$/.test(cuit)) return false;
+      const [type, number, check] = [
+        cuit.substring(0, 2),
+        cuit.substring(2, 10),
+        cuit.substring(10, 11),
+      ];
+      const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+      let sum = 0;
+      for (let i = 0; i < 10; i++) {
+        sum += parseInt(cuit[i]) * multipliers[i];
+      }
+      let calculatedCheck = 11 - (sum % 11);
+      if (calculatedCheck === 11) calculatedCheck = 0;
+      if (calculatedCheck === 10) calculatedCheck = 9; // Simplified common case for 20/27/30
+      return parseInt(check) === calculatedCheck;
+    };
+
+    if (!validarCUIT(organizacionData.cuit)) {
+      return res.status(400).json({
+        message: "El formato del CUIT es inválido o no supera la validación de integridad",
+        error: true,
+      });
+    }
+
     const existingOrg = await prisma.organizacion.findUnique({
       where: { cuit: organizacionData.cuit }
     });

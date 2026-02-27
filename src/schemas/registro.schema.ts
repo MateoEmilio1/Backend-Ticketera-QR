@@ -9,6 +9,7 @@ export const crearClienteSchema = z.object({
         tipoDoc: z.string().min(2, "Tipo de documento inválido"),
         nroDoc: z.string().min(7, "Número de documento inválido"),
         fechaNacimiento: z.string().or(z.date()),
+        telefono: z.string().optional(),
     }),
 });
 
