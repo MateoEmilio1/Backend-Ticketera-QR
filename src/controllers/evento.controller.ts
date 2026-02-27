@@ -39,7 +39,7 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
       include: { tipoTickets: true },
     });
 
-    res.status(201).json({ message: "Evento creado con éxito", evento });
+    res.status(201).json({ message: "Evento creado con éxito", data: evento });
   } catch (error) {
     console.error("Error al crear el evento:", error);
     res.status(500).json({ message: "Error interno del servidor", error: true });
