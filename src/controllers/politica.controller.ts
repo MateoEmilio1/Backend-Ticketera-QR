@@ -4,9 +4,12 @@ import { Request, Response } from "express";
 // Crear una Politica
 export const crearPolitica = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { diasReembolso } = req.body;
+    const { diasReembolso, fechaVigencia } = req.body;
     const politica = await prisma.politica.create({
-      data: { diasReembolso: Number(diasReembolso) },
+      data: {
+        diasReembolso: Number(diasReembolso),
+        fechaVigencia: fechaVigencia ? new Date(fechaVigencia) : new Date()
+      },
     });
 
     res.status(200).json({
