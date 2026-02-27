@@ -38,7 +38,20 @@ const crearTicket = async (req: Request, res: Response): Promise<void> => {
 
     if (ticketsVendidos >= tipoTicket.cantMaxPorTipo) {
       res.status(400).json({
-        message: "No hay cupos disponibles para este tipo de ticket",
+        message: "Lo sentimos, no hay cupos disponibles para este tipo de ticket (Capacidad agotada)",
+        error: true,
+      });
+      return;
+    }
+
+    // 1.c Validar que el cliente exista y control de DNI (CU01)
+    const cliente = await prisma.cliente.findUnique({
+      where: { idCliente: Number(idCliente) }
+    });
+
+    if (!cliente) {
+      res.status(404).json({
+        message: "El cliente especificado no existe",
         error: true,
       });
       return;
