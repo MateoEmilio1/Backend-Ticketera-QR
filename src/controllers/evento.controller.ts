@@ -1,6 +1,6 @@
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
-import { sendEventCancellationEmail } from "../services/emailService.js";
+import { sendEventCancellationEmail, sendEventDateChangeEmail } from "../services/emailService.js";
 
 // Crear un Evento
 const crearEvento = async (req: Request, res: Response): Promise<void> => {
@@ -100,19 +100,72 @@ const eliminarEvento = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// Actualizar evento
-const actualizarEvento = async (req: Request, res: Response) => {
+// Cambiar fecha de evento
+const cambiarFechaEvento = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const EventoData = req.body;
-    const EventoActualizado = await prisma.evento.update({
-      where: { idEvento: parseInt(id) },
-      data: EventoData,
+    const { fechaHoraEvento } = req.body;
+    const idEvento = parseInt(id);
+
+    // 1. Obtener el evento para verificar que existe, incluyendo tickets y clientes para notificar
+    const eventoAntiguo = await prisma.evento.findUnique({
+      where: { idEvento },
+      include: {
+        tipoTickets: {
+          include: {
+            tickets: {
+              where: { estado: 'pagado' },
+              include: {
+                cliente: {
+                  include: { usuario: true }
+                }
+              }
+            }
+          }
+        }
+      }
     });
 
-    res.status(200).json({ message: "Evento actualizado con éxito", data: EventoActualizado, error: false });
+    if (!eventoAntiguo) {
+      res.status(404).json({ message: "Evento no encontrado", error: true });
+      return;
+    }
+
+    const nuevaFecha = new Date(fechaHoraEvento);
+
+    // 2. Actualizar la fecha del evento
+    const eventoActualizado = await prisma.evento.update({
+      where: { idEvento },
+      data: {
+        fechaHoraEvento: nuevaFecha
+      },
+    });
+
+    // 3. Enviar notificaciones de manera asíncrona
+    const ticketsPorNotificar = eventoAntiguo.tipoTickets.flatMap(tt => tt.tickets);
+
+    Promise.allSettled(ticketsPorNotificar.map(ticket => {
+      const email = ticket.cliente.usuario.mail;
+      const nombreUsuario = `${ticket.cliente.nombre} ${ticket.cliente.apellido}`;
+
+      // Obtener formato de fechas
+      const fechaAntiguaStr = eventoAntiguo.fechaHoraEvento.toLocaleString('es-AR');
+      const fechaNuevaStr = nuevaFecha.toLocaleString('es-AR');
+
+      return sendEventDateChangeEmail(email, {
+        evento: eventoAntiguo.nombre,
+        fechaAntigua: fechaAntiguaStr,
+        fechaNueva: fechaNuevaStr,
+        usuario: nombreUsuario
+      });
+    })).then(results => {
+      const exitosos = results.filter(r => r.status === 'fulfilled').length;
+      console.log(`Notificaciones de cambio de fecha enviadas: ${exitosos}/${ticketsPorNotificar.length}`);
+    });
+
+    res.status(200).json({ message: "Fecha de evento actualizada con éxito", data: eventoActualizado, error: false });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar el Evento", error: true, details: (error as Error).message });
+    res.status(500).json({ message: "Error al actualizar la fecha del Evento", error: true, details: (error as Error).message });
   }
 };
 
@@ -414,7 +467,7 @@ export default {
   obtenerEventos,
   obtenerEventosPorId,
   eliminarEvento,
-  actualizarEvento,
+  cambiarFechaEvento,
   cancelarEvento,
   getEstadisticas,
   getVentasPorHora,
