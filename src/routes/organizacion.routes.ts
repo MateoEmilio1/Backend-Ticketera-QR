@@ -9,6 +9,7 @@ import { idParamSchema } from "../schemas/common.schema.js";
 const router = express.Router();
 
 router.get('/', organizacionController.obtenerOrganizaciones);
+router.get('/usuario/:idUsuario', organizacionController.obtenerOrganizacionPorIdUsuario);
 router.get('/:id', validate(idParamSchema), organizacionController.obtenerOrganizacionPorId);
 router.delete('/:id', validate(idParamSchema), organizacionController.eliminarOrganizacion);
 router.put('/:id', validate(actualizarOrganizacionSchema), organizacionController.actualizarOrganizacion);
