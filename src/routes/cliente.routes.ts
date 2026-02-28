@@ -9,6 +9,7 @@ import { idParamSchema } from "../schemas/common.schema.js";
 const router = express.Router();
 
 router.get('/', clienteController.obtenerClientes);
+router.get('/usuario/:idUsuario', clienteController.obtenerClientePorIdUsuario);
 router.get('/:id', validate(idParamSchema), clienteController.obtenerClientePorId);
 router.delete('/:id', validate(idParamSchema), clienteController.eliminarCliente);
 router.put('/:id', validate(actualizarClienteSchema), clienteController.actualizarCliente);
