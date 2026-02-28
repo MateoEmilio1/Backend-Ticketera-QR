@@ -1,7 +1,7 @@
 import express from "express";
 import eventoController from "../controllers/evento.controller.js";
 import { validate } from "../middleware/validate.middleware.js";
-import { actualizarEventoSchema, crearEventoSchema } from "../schemas/evento.schema.js";
+import { cambiarFechaEventoSchema, crearEventoSchema } from "../schemas/evento.schema.js";
 
 import { idParamSchema } from "../schemas/common.schema.js";
 
@@ -14,7 +14,7 @@ router.get("/ventas-hora", eventoController.getVentasPorHora);
 router.get("/reporte-categoria", eventoController.getEventosPorCategoria);
 router.get("/:id", validate(idParamSchema), eventoController.obtenerEventosPorId);
 router.delete("/:id", validate(idParamSchema), eventoController.eliminarEvento);
-router.put("/:id", validate(actualizarEventoSchema), eventoController.actualizarEvento);
+router.put("/:id", validate(cambiarFechaEventoSchema), eventoController.cambiarFechaEvento);
 router.patch("/:id/cancelar", validate(idParamSchema), eventoController.cancelarEvento);
 
 export default router;

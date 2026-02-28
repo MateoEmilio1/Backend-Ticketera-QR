@@ -21,16 +21,21 @@ export const crearEventoSchema = z.object({
     }),
 });
 
-export const actualizarEventoSchema = z.object({
+export const cambiarFechaEventoSchema = z.object({
     params: z.object({
         id: z.string().regex(/^\d+$/, "ID de evento inválido"),
     }),
     body: z.object({
-        nombre: z.string().min(3).optional(),
-        fechaHoraEvento: z.string().or(z.date()).optional(),
-        capacidadMax: z.number().int().positive().optional(),
-        descripcion: z.string().optional(),
-        foto: z.string().url().optional(),
-        idCategoria: z.number().int().positive().optional(),
-    }).partial(),
+        fechaHoraEvento: z.string().or(z.date()).refine(
+            (val) => {
+                const date = new Date(val);
+                if (isNaN(date.getTime())) return false;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date >= today;
+            },
+            { message: "La fecha del evento no puede ser previa al día de hoy" }
+        ),
+    }),
 });
