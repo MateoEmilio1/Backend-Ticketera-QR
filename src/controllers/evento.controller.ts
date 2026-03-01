@@ -49,7 +49,16 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
 // Obtener todos los eventos
 const obtenerEventos = async (req: Request, res: Response) => {
   try {
+    const { idOrganizacion } = req.query;
+
+    const whereClause: any = {};
+
+    if (idOrganizacion && !isNaN(Number(idOrganizacion))) {
+      whereClause.idOrganizacion = Number(idOrganizacion);
+    }
+
     const eventos = await prisma.evento.findMany({
+      where: whereClause,
       include: { tipoTickets: true },
     });
 
