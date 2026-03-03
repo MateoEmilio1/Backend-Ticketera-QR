@@ -1,4 +1,4 @@
-import { Rol } from "@prisma/client";
+import { Rol, Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { Request, Response } from "express";
 import { encrypt } from "../utils/handleCrypt.js";
@@ -15,15 +15,6 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
       fechaNacimiento,
       telefono,
     } = req.body;
-
-    // Validación de teléfono (CU05)
-    if (telefono && !/^(\+?\d{8,15})$/.test(telefono)) {
-      res.status(400).json({
-        message: "El formato del número de teléfono es inválido",
-        error: true,
-      });
-      return;
-    }
 
     const hashedPassword = await encrypt(contraseña);
     const nuevoCliente = await prisma.cliente.create({
@@ -54,6 +45,26 @@ const crearCliente = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error("Error en crearCliente", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        const target = error.meta?.target as string[];
+        let message = "Ya existe un registro con estos datos únicos";
+
+        if (target.includes("mail")) {
+          message = "El correo electrónico ya está registrado";
+        } else if (target.includes("nroDoc")) {
+          message = "El número de documento ya está registrado";
+        }
+
+        res.status(400).json({
+          message,
+          error: true,
+        });
+        return;
+      }
+    }
+
     res.status(500).json({
       message: "Error al crear el cliente",
       error: true,
@@ -202,6 +213,26 @@ const actualizarCliente = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error en actualizarCliente:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        const target = error.meta?.target as string[];
+        let message = "Ya existe un registro con estos datos únicos";
+
+        if (target.includes("mail")) {
+          message = "El correo electrónico ya está en uso por otro usuario";
+        } else if (target.includes("nroDoc")) {
+          message = "El número de documento ya está en uso por otro cliente";
+        }
+
+        res.status(400).json({
+          message,
+          error: true,
+        });
+        return;
+      }
+    }
+
     res.status(500).json({
       message: "Error al actualizar el cliente",
       error: true,

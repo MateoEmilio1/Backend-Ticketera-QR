@@ -17,4 +17,11 @@ router.delete("/:id", validate(idParamSchema), eventoController.eliminarEvento);
 router.put("/:id", validate(cambiarFechaEventoSchema), eventoController.cambiarFechaEvento);
 router.patch("/:id/cancelar", validate(idParamSchema), eventoController.cancelarEvento);
 
+// New route to fetch events for a specific organization
+router.get("/org/:idOrganizacion", async (req, res) => {
+    // Attach idOrganizacion to query and reuse existing controller logic
+    req.query.idOrganizacion = req.params.idOrganizacion;
+    await eventoController.obtenerEventos(req, res);
+});
+
 export default router;

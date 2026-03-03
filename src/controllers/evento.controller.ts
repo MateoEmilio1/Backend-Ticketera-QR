@@ -182,9 +182,12 @@ const cambiarFechaEvento = async (req: Request, res: Response): Promise<void> =>
 // Obtener estadísticas
 const getEstadisticas = async (req: Request, res: Response) => {
   try {
-    const { fechaInicio, fechaFin } = req.query;
+    const { fechaInicio, fechaFin, idOrganizacion } = req.query;
 
     const whereClause: any = {};
+    if (idOrganizacion) {
+      whereClause.idOrganizacion = Number(idOrganizacion);
+    }
     if (fechaInicio || fechaFin) {
       whereClause.fechaHoraEvento = {};
       if (fechaInicio) whereClause.fechaHoraEvento.gte = new Date(fechaInicio as string);
@@ -203,19 +206,27 @@ const getEstadisticas = async (req: Request, res: Response) => {
 
     // Procesar estadísticas por evento
     const estadisticas = eventos.map((evento) => {
-      const tickets = evento.tipoTickets.flatMap((t) => t.tickets);
-      const vendidos = tickets.length;
-      const reembolsados = tickets.filter((t) => t.estado === "reembolsado").length;
-      const recaudacion = tickets
-        .filter((t) => t.estado === "pagado" || t.estado === "consumido")
-        .reduce(
-          (sum, t) =>
-            sum +
-            Number(evento.tipoTickets.find((tt) => tt.idTipoTicket === t.idTipoTicket)?.precio || 0),
-          0
-        );
+      // Traer todos los tickets relevantes (excluyendo pendientes)
+      const allTickets = evento.tipoTickets.flatMap((t) => t.tickets).filter(t => t.estado !== "pendiente");
 
-      const edades = tickets
+      // Contar como vendidos solo los que están pagados o consumidos
+      const ticketsActivos = allTickets.filter(t => t.estado === "pagado" || t.estado === "consumido");
+      const vendidos = ticketsActivos.length;
+
+      // Contar específicamente los reembolsados
+      const reembolsados = allTickets.filter((t) => t.estado === "reembolsado").length;
+
+      // Calcular recaudación solo de tickets activos
+      const recaudacion = ticketsActivos.reduce(
+        (sum, t) => {
+          const precio = Number(evento.tipoTickets.find((tt) => tt.idTipoTicket === t.idTipoTicket)?.precio || 0);
+          return sum + precio;
+        },
+        0
+      );
+
+      // Usar tickets activos para el perfil demográfico (edad)
+      const edades = ticketsActivos
         .map((t) => {
           if (!t.cliente?.fechaNacimiento) return NaN;
           const hoy = new Date();
@@ -263,7 +274,7 @@ const getEstadisticas = async (req: Request, res: Response) => {
 // Reporte de Ventas por Hora
 const getVentasPorHora = async (req: Request, res: Response) => {
   try {
-    const { fechaInicio, fechaFin, idCategoria, idTipoTicket, idEvento } = req.query;
+    const { fechaInicio, fechaFin, idCategoria, idTipoTicket, idEvento, idOrganizacion } = req.query;
 
     const whereClause: any = {
       estado: { in: ['pagado', 'consumido'] } // Solo ventas reales
@@ -281,8 +292,8 @@ const getVentasPorHora = async (req: Request, res: Response) => {
       whereClause.idTipoTicket = Number(idTipoTicket);
     }
 
-    // Filtros por Categoria y Evento (Merge relationship filters)
-    if (idCategoria || idEvento) {
+    // Filtros por Categoria, Evento y Organizacion (Merge relationship filters)
+    if (idCategoria || idEvento || idOrganizacion) {
       whereClause.tipoTicket = {
         evento: {}
       };
@@ -292,6 +303,9 @@ const getVentasPorHora = async (req: Request, res: Response) => {
       }
       if (idEvento) {
         whereClause.tipoTicket.evento.idEvento = Number(idEvento);
+      }
+      if (idOrganizacion) {
+        whereClause.tipoTicket.evento.idOrganizacion = Number(idOrganizacion);
       }
     }
     // Obtenemos los tickets
@@ -346,17 +360,22 @@ const getVentasPorHora = async (req: Request, res: Response) => {
 // Reporte de Eventos por Categoría (CU12)
 const getEventosPorCategoria = async (req: Request, res: Response) => {
   try {
+    const { idOrganizacion } = req.query;
+    const orgFilter = idOrganizacion ? { idOrganizacion: Number(idOrganizacion) } : {};
+
     const categorias = await prisma.categoria.findMany({
       include: {
-        _count: {
-          select: { eventos: true }
-        },
         eventos: {
+          where: orgFilter,
           include: {
             tipoTickets: {
               include: {
                 _count: {
-                  select: { tickets: true }
+                  select: {
+                    tickets: {
+                      where: { estado: { in: ['pagado', 'consumido'] } }
+                    }
+                  }
                 }
               }
             }
@@ -368,19 +387,17 @@ const getEventosPorCategoria = async (req: Request, res: Response) => {
     const reporte = categorias.map(cat => ({
       idCategoria: cat.idCategoria,
       nombre: cat.nombreCategoria,
-      cantidadEventos: cat._count.eventos,
+      cantidadEventos: cat.eventos.length,
+      ticketsVendidos: cat.eventos.reduce((total, e) => total + e.tipoTickets.reduce((sum, tt) => sum + tt._count.tickets, 0), 0),
+      recaudacionTotal: cat.eventos.reduce((total, e) => total + e.tipoTickets.reduce((sum, tt) => sum + (tt._count.tickets * Number(tt.precio)), 0), 0),
       eventos: cat.eventos.map(e => ({
         idEvento: e.idEvento,
         nombre: e.nombre,
         fecha: e.fechaHoraEvento,
-        capacidad: e.capacidadMax,
         ticketsVendidos: e.tipoTickets.reduce((sum, tt) => sum + tt._count.tickets, 0),
-        recaudacionTotal: e.tipoTickets.reduce((sum, tt) => {
-          // This is a simplified calculation for the report
-          return sum;
-        }, 0)
+        recaudacionTotal: e.tipoTickets.reduce((sum, tt) => sum + (tt._count.tickets * Number(tt.precio)), 0)
       }))
-    }));
+    })).filter(cat => cat.cantidadEventos > 0);
 
     res.status(200).json({
       message: "Reporte de eventos por categoría obtenido con éxito",

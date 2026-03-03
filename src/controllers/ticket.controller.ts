@@ -88,12 +88,12 @@ const crearTicket = async (req: Request, res: Response): Promise<void> => {
             }
           ],
           back_urls: {
-            success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-exitoso`,
-            failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-fallido`,
-            pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pago-pendiente`,
+            success: `${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/['"]/g, '')}/pago-exitoso`,
+            failure: `${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/['"]/g, '')}/pago-fallido`,
+            pending: `${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/['"]/g, '')}/pago-pendiente`,
           },
           auto_return: "approved",
-          notification_url: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/tickets/webhook`,
+          notification_url: `${(process.env.BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '')}/api/tickets/webhook`,
           external_reference: ticket.nroTicket.toString()
         }
       };
