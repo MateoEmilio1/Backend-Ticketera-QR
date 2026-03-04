@@ -24,7 +24,15 @@ export const crearClienteSchema = z.object({
         nroDoc: z.string(),
         fechaNacimiento: z.string().or(z.date()),
         telefono: z.string().regex(/^\+?\d{8,15}$/, "Número de teléfono inválido (8-15 dígitos)").optional(),
+        repetirContraseña: z.string().optional(),
     }).superRefine((data, ctx) => {
+        if (data.contraseña !== data.repetirContraseña) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden",
+                path: ["repetirContraseña"],
+            });
+        }
         if (data.tipoDoc === "DNI") {
             if (!/^\d{7,9}$/.test(data.nroDoc)) {
                 ctx.addIssue({
@@ -63,5 +71,14 @@ export const crearOrganizacionSchema = z.object({
             .refine(validarCUIT, "CUIT inválido (falló la validación de integridad)"),
         ubicacion: z.string().min(5, "La ubicación debe ser más descriptiva"),
         eventos: z.array(z.any()).optional(),
+        repetirContraseña: z.string().optional(),
+    }).superRefine((data, ctx) => {
+        if (data.contraseña !== data.repetirContraseña) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Las contraseñas no coinciden",
+                path: ["repetirContraseña"],
+            });
+        }
     }),
 });
