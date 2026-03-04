@@ -3,6 +3,29 @@ import { Request, Response } from "express";
 
 export const crearCategoria = async (req: Request, res: Response): Promise<void> => {
   try {
+    const categoriaExistente = await prisma.categoria.findFirst({
+      where: {
+        nombreCategoria: {
+          equals: req.body.nombreCategoria,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (categoriaExistente) {
+      res.status(400).json({
+        message: "Error de validación",
+        error: true,
+        details: [
+          {
+            path: "nombreCategoria",
+            message: "Ya existe una categoría con ese nombre"
+          }
+        ]
+      });
+      return;
+    }
+
     const categoria = await prisma.categoria.create({
       data: {
         nombreCategoria: req.body.nombreCategoria,
@@ -88,6 +111,35 @@ export const obtenerCategoriaPorId = async (req: Request, res: Response): Promis
 export const actualizarCategoria = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (req.body.nombreCategoria) {
+      const categoriaExistente = await prisma.categoria.findFirst({
+        where: {
+          nombreCategoria: {
+            equals: req.body.nombreCategoria,
+            mode: 'insensitive'
+          },
+          idCategoria: {
+            not: parseInt(id)
+          }
+        }
+      });
+
+      if (categoriaExistente) {
+        res.status(400).json({
+          message: "Error de validación",
+          error: true,
+          details: [
+            {
+              path: "nombreCategoria",
+              message: "Ya existe otra categoría con ese nombre"
+            }
+          ]
+        });
+        return;
+      }
+    }
+
     const categoriaActualizada = await prisma.categoria.update({
       where: { idCategoria: parseInt(id) },
       data: req.body,

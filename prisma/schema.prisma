@@ -46,15 +46,16 @@ model Organizacion {
 
 model Categoria {
   idCategoria     Int      @id @default(autoincrement())
-  nombreCategoria String
+  nombreCategoria String   @unique
   eventos         Evento[]
 }
 
 model Evento {
   idEvento        Int          @id @default(autoincrement())
   nombre          String
-  fechaCreacion   DateTime
+  fechaCreacion   DateTime     @default(now())
   fechaHoraEvento DateTime
+  ubicacion       String
   capacidadMax    Int
   descripcion     String?
   idCategoria     Int

@@ -1,4 +1,4 @@
-import {prisma} from "../prisma.js"
+import { prisma } from "../prisma.js"
 import { Request, Response } from "express";
 
 // editar un tipo de ticket
@@ -16,7 +16,7 @@ const editarTipoTicket = async (req: Request, res: Response) => {
       data: tipoTicket,
       error: false,
     });
-  } catch (error) { 
+  } catch (error) {
     console.error("Error en editarTipoTicket:", error);
     res.status(500).json({
       message: "Error al editar el tipo de ticket",
@@ -26,4 +26,4 @@ const editarTipoTicket = async (req: Request, res: Response) => {
   }
 }
 
-export default {editarTipoTicket};
+export default { editarTipoTicket };
