@@ -1,3 +1,4 @@
+// Controlador de Tickets
 import { prisma } from "../prisma.js";
 import { EstadoTicket } from "@prisma/client";
 import { Request, Response } from "express";
@@ -28,11 +29,34 @@ const crearTicket = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (tipoTicket.evento?.estado === 'CANCELADO') {
+      res.status(400).json({
+        message: "No se pueden comprar tickets para un evento cancelado",
+        error: true,
+      });
+      return;
+    }
+
+    // Antes de chequear cupos, vencemos tickets pendientes antiguos para este tipo de ticket
+    const diezMinutosAtras = new Date(Date.now() - 10 * 60 * 1000);
+    await prisma.ticket.updateMany({
+      where: {
+        idTipoTicket: Number(idTipoTicket),
+        estado: 'pendiente',
+        fechaCreacion: {
+          lt: diezMinutosAtras
+        }
+      },
+      data: {
+        estado: 'expirado'
+      }
+    });
+
     // 1.b Validar cupos disponibles (CU01 Camino alternativo)
     const ticketsVendidos = await prisma.ticket.count({
       where: {
         idTipoTicket: Number(idTipoTicket),
-        estado: { not: 'reembolsado' } // No contamos tickets reembolsados como ocupando cupo
+        estado: { notIn: ['reembolsado', 'expirado'] } // No contamos tickets cancelados
       }
     });
 
@@ -336,8 +360,34 @@ const obtenerTicketsPorIdCliente = async (req: Request, res: Response): Promise<
       return;
     }
 
+    // Vencer tickets pendientes de pago más antiguos a 10 minutos
+    const diezMinutosAtras = new Date(Date.now() - 10 * 60 * 1000);
+    await prisma.ticket.updateMany({
+      where: {
+        idCliente: idCliente,
+        estado: 'pendiente',
+        fechaCreacion: {
+          lt: diezMinutosAtras
+        }
+      },
+      data: {
+        estado: 'expirado'
+      }
+    });
+
     const tickets = await prisma.ticket.findMany({
-      where: { idCliente: idCliente }, // Convertimos a número de manera segura
+      where: {
+        OR: [
+          { idCliente: idCliente },
+          { ofertaTransferenciaIdCliente: idCliente }
+        ],
+        NOT: {
+          AND: [
+            { estado: 'expirado' },
+            { metodoPago: 'mercadopago' }
+          ]
+        }
+      },
       include: {
         cliente: {
           select: {
@@ -585,28 +635,28 @@ const transferirTicket = async (req: Request, res: Response): Promise<void> => {
 
     const ticketTransferido = await prisma.ticket.update({
       where: { nroTicket: Number(nroTicket) },
-      data: { idCliente: nuevoDueño.cliente.idCliente },
+      data: {
+        estado: EstadoTicket.pendiente_transferencia,
+        ofertaTransferenciaIdCliente: nuevoDueño.cliente.idCliente
+      },
       include: {
         cliente: { include: { usuario: true } },
         tipoTicket: { include: { evento: true } },
       },
     });
 
-    // Enviar correo al nuevo dueño
-    if (ticketTransferido.cliente?.usuario?.mail) {
-      const { sendTicketEmail } = await import("../services/emailService.js");
-      await sendTicketEmail(ticketTransferido.cliente.usuario.mail, {
+    // Enviar correo de oferta al nuevo dueño
+    if (nuevoDueño.mail) {
+      const { sendTransferOfferEmail } = await import("../services/emailService.js");
+      await sendTransferOfferEmail(nuevoDueño.mail, {
         evento: ticketTransferido.tipoTicket?.evento?.nombre || "Evento",
-        fecha: new Date(ticketTransferido.tipoTicket?.evento?.fechaHoraEvento || new Date()).toLocaleString(),
-        usuario: `${ticketTransferido.cliente.nombre} ${ticketTransferido.cliente.apellido}`,
-        precio: Number(ticketTransferido.tipoTicket?.precio || 0),
+        usuarioOrigen: `${ticketTransferido.cliente.nombre} ${ticketTransferido.cliente.apellido}`,
         nroTicket: ticketTransferido.nroTicket,
-        qrData: ticketTransferido.tokenQr
       });
     }
 
     res.status(200).json({
-      message: "Ticket transferido con éxito",
+      message: "Ofrecimiento de transferencia enviado con éxito",
       data: ticketTransferido,
       error: false,
     });
@@ -616,6 +666,91 @@ const transferirTicket = async (req: Request, res: Response): Promise<void> => {
       message: "Error al transferir el ticket",
       error: true,
       details: (error as Error).message,
+    });
+  }
+};
+
+const aceptarTransferencia = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { nroTicket } = req.body;
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { nroTicket: Number(nroTicket) },
+      include: {
+        cliente: { include: { usuario: true } },
+        tipoTicket: { include: { evento: true } }
+      }
+    });
+
+    if (!ticket || ticket.estado !== EstadoTicket.pendiente_transferencia || !ticket.ofertaTransferenciaIdCliente) {
+      res.status(400).json({
+        message: "No hay una transferencia pendiente válida para este ticket",
+        error: true,
+      });
+      return;
+    }
+
+    const antiguoDueñoMail = ticket.cliente.usuario.mail;
+    const eventoNombre = ticket.tipoTicket.evento.nombre;
+
+    const ticketActualizado = await prisma.ticket.update({
+      where: { nroTicket: Number(nroTicket) },
+      data: {
+        idCliente: ticket.ofertaTransferenciaIdCliente,
+        estado: EstadoTicket.pagado,
+        ofertaTransferenciaIdCliente: null
+      },
+      include: {
+        cliente: { include: { usuario: true } }
+      }
+    });
+
+    // Enviar correo al antiguo dueño avisando que fue aceptado
+    if (antiguoDueñoMail) {
+      const { sendTransferAcceptedEmail } = await import("../services/emailService.js");
+      await sendTransferAcceptedEmail(antiguoDueñoMail, {
+        evento: eventoNombre,
+        usuarioDestino: `${ticketActualizado.cliente.nombre} ${ticketActualizado.cliente.apellido}`,
+        nroTicket: ticketActualizado.nroTicket
+      });
+    }
+
+    res.status(200).json({
+      message: "Transferencia aceptada con éxito",
+      data: ticketActualizado,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en aceptarTransferencia", error);
+    res.status(500).json({
+      message: "Error al aceptar la transferencia",
+      error: true,
+    });
+  }
+};
+
+const rechazarTransferencia = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { nroTicket } = req.body;
+
+    const ticket = await prisma.ticket.update({
+      where: { nroTicket: Number(nroTicket) },
+      data: {
+        estado: EstadoTicket.pagado,
+        ofertaTransferenciaIdCliente: null
+      }
+    });
+
+    res.status(200).json({
+      message: "Transferencia rechazada con éxito",
+      data: ticket,
+      error: false,
+    });
+  } catch (error) {
+    console.error("Error en rechazarTransferencia", error);
+    res.status(500).json({
+      message: "Error al rechazar la transferencia",
+      error: true,
     });
   }
 };
@@ -672,7 +807,22 @@ const reembolsarTicket = async (req: Request, res: Response): Promise<void> => {
     const ticketReembolsado = await prisma.ticket.update({
       where: { nroTicket: Number(nroTicket) },
       data: { estado: EstadoTicket.reembolsado },
+      include: {
+        cliente: { include: { usuario: true } },
+        tipoTicket: { include: { evento: true } }
+      }
     });
+
+    // Enviar correo de reembolso
+    if (ticketReembolsado.cliente?.usuario?.mail) {
+      const { sendRefundEmail } = await import("../services/emailService.js");
+      await sendRefundEmail(ticketReembolsado.cliente.usuario.mail, {
+        evento: ticketReembolsado.tipoTicket.evento.nombre,
+        usuario: `${ticketReembolsado.cliente.nombre} ${ticketReembolsado.cliente.apellido}`,
+        nroTicket: ticketReembolsado.nroTicket,
+        monto: Number(ticketReembolsado.tipoTicket.precio)
+      });
+    }
 
     res.status(200).json({
       message: "Ticket reembolsado con éxito",
@@ -701,4 +851,6 @@ export default {
   recibirWebhook,
   transferirTicket,
   reembolsarTicket,
+  aceptarTransferencia,
+  rechazarTransferencia,
 };

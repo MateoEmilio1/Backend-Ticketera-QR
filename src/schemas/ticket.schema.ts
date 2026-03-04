@@ -43,3 +43,15 @@ export const actualizarTicketSchema = z.object({
         estado: z.string().optional(),
     }).partial(),
 });
+
+export const aceptarTransferenciaSchema = z.object({
+    body: z.object({
+        nroTicket: z.number().int().positive("Número de ticket inválido"),
+    }),
+});
+
+export const rechazarTransferenciaSchema = z.object({
+    body: z.object({
+        nroTicket: z.number().int().positive("Número de ticket inválido"),
+    }),
+});

@@ -8,6 +8,8 @@ import {
     transferirTicketSchema,
     reembolsarTicketSchema,
     actualizarTicketSchema,
+    aceptarTransferenciaSchema,
+    rechazarTransferenciaSchema,
 } from "../schemas/ticket.schema.js";
 
 import { idClienteParamSchema, idParamSchema } from "../schemas/common.schema.js";
@@ -25,5 +27,7 @@ router.delete("/:id", validate(idParamSchema), ticketController.eliminarTicket);
 router.patch("/:id", validate(actualizarTicketSchema), ticketController.actualizarTicket);
 router.post("/transferir", validate(transferirTicketSchema), ticketController.transferirTicket);
 router.post("/reembolsar", validate(reembolsarTicketSchema), ticketController.reembolsarTicket);
+router.post("/aceptar-transferencia", validate(aceptarTransferenciaSchema), ticketController.aceptarTransferencia);
+router.post("/rechazar-transferencia", validate(rechazarTransferenciaSchema), ticketController.rechazarTransferencia);
 
 export default router;
