@@ -218,3 +218,146 @@ export const sendEventDateChangeEmail = async (
         return false;
     }
 };
+
+export const sendTransferOfferEmail = async (
+    email: string,
+    transferInfo: {
+        evento: string;
+        usuarioOrigen: string;
+        nroTicket: number;
+    }
+) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const mailOptions = {
+            from: `"Ticketera QR" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `Has recibido un ofrecimiento de ticket para ${transferInfo.evento}`,
+            html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4F46E5; text-align: center;">Ofrecimiento de Ticket</h2>
+          <p>Hola,</p>
+          <p><strong>${transferInfo.usuarioOrigen}</strong> te ha enviado un ticket para el evento <strong>${transferInfo.evento}</strong> (Ticket #${transferInfo.nroTicket}).</p>
+          
+          <p>Para recibirlo, debes aceptar la transferencia desde tu cuenta.</p>
+          
+          <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/clientes/mis-tickets" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver Mis Tickets</a>
+          </div>
+        </div>
+      `,
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Correo de oferta de transferencia enviado: %s", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo de oferta de transferencia:", error);
+        return false;
+    }
+};
+
+export const sendTransferAcceptedEmail = async (
+    email: string,
+    transferInfo: {
+        evento: string;
+        usuarioDestino: string;
+        nroTicket: number;
+    }
+) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const mailOptions = {
+            from: `"Ticketera QR" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `Tu ticket para ${transferInfo.evento} fue aceptado`,
+            html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4F46E5; text-align: center;">Transferencia Aceptada</h2>
+          <p>Hola,</p>
+          <p>Te informamos que <strong>${transferInfo.usuarioDestino}</strong> ha aceptado el ticket #${transferInfo.nroTicket} que le transferiste para el evento <strong>${transferInfo.evento}</strong>.</p>
+          
+          <p>El ticket ya no aparecerá en tu cuenta.</p>
+        </div>
+      `,
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Correo de transferencia aceptada enviado: %s", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo de transferencia aceptada:", error);
+        return false;
+    }
+};
+
+export const sendRefundEmail = async (
+    email: string,
+    refundInfo: {
+        evento: string;
+        usuario: string;
+        nroTicket: number;
+        monto: number;
+    }
+) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const mailOptions = {
+            from: `"Ticketera QR" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `Reembolso procesado para ${refundInfo.evento}`,
+            html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4F46E5; text-align: center;">Reembolso Exitoso</h2>
+          <p>Hola <strong>${refundInfo.usuario}</strong>,</p>
+          <p>Te informamos que se ha procesado con éxito el reembolso de tu ticket #${refundInfo.nroTicket} para el evento <strong>${refundInfo.evento}</strong> por un monto de $${refundInfo.monto}.</p>
+          
+          <p>El dinero será acreditado en el mismo medio de pago que utilizaste para la compra.</p>
+        </div>
+      `,
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Correo de reembolso enviado: %s", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo de reembolso:", error);
+        return false;
+    }
+};

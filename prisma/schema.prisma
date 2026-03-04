@@ -86,14 +86,15 @@ model TipoTicket {
 }
 
 model Ticket {
-  nroTicket     Int          @id @default(autoincrement())
-  fechaCreacion DateTime     @default(now())
-  fechaConsumo  DateTime?
-  tokenQr       String       @unique
-  idTipoTicket  Int
-  idCliente     Int
-  estado        EstadoTicket @default(pagado)
-  metodoPago    String?
+  nroTicket                    Int          @id @default(autoincrement())
+  fechaCreacion                DateTime     @default(now())
+  fechaConsumo                 DateTime?
+  tokenQr                      String       @unique
+  idTipoTicket                 Int
+  idCliente                    Int
+  ofertaTransferenciaIdCliente Int?
+  estado                       EstadoTicket @default(pagado)
+  metodoPago                   String?
 
   cliente    Cliente    @relation(fields: [idCliente], references: [idCliente])
   tipoTicket TipoTicket @relation(fields: [idTipoTicket], references: [idTipoTicket])
@@ -118,4 +119,5 @@ enum EstadoTicket {
   consumido
   expirado
   reembolsado
+  pendiente_transferencia
 }
