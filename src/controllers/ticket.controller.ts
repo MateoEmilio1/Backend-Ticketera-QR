@@ -7,8 +7,12 @@ import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import QRCode from "qrcode";
 
 // Configuración de Mercado Pago
+if (!process.env.MP_ACCESS_TOKEN) {
+  throw new Error("MP_ACCESS_TOKEN no está definido en el .env");
+}
+
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN || "TEST-6353816718960255-020118-63adf89581727ed5b2a1222f1ec2172b-1647754684"
+  accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
 const crearTicket = async (req: Request, res: Response): Promise<void> => {
