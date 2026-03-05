@@ -12,6 +12,7 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
       capacidadMax,
       descripcion,
       foto,
+      ubicacion,
       idCategoria,
       idOrganizacion,
       tipoTickets,
@@ -24,11 +25,12 @@ const crearEvento = async (req: Request, res: Response): Promise<void> => {
         fechaHoraEvento: new Date(fechaHoraEvento),
         capacidadMax,
         descripcion: descripcion || null,
+        ubicacion: ubicacion || null,
         foto,
         categoria: { connect: { idCategoria } },
         organizacion: { connect: { idOrganizacion } },
         tipoTickets: {
-          create: tipoTickets.map((ticket: { tipo: any; precio: any; acceso: any; cantMaxPorTipo: any; }) => ({
+          create: tipoTickets.map((ticket: any) => ({
             tipo: ticket.tipo,
             precio: ticket.precio,
             acceso: ticket.acceso,
